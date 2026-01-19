@@ -94,14 +94,19 @@ export async function addTextToPDF(
 
             const page = pages[pageIndex];
             const { width, height } = page.getSize();
+            // Get page origin (CropBox or MediaBox) to handle PDFs with non-zero origins
+            const cropBox = page.getCropBox() ?? page.getMediaBox();
+            const pageOriginX = cropBox?.x ?? 0;
+            const pageOriginY = cropBox?.y ?? 0;
 
             for (const box of boxes) {
-                // Convert percentage coordinates to absolute
-                const x = (box.x / 100) * width;
+                // Convert percentage coordinates to absolute + Apply Page Origin
+                const x = pageOriginX + (box.x / 100) * width;
+
                 // PDF coordinates are from bottom-left, UI is from top-left
                 // Adjust for font size (baseline) and UI padding (~4pt)
-                // UI has p-1 (4px) padding, pushing text down. We typically map 1px ~ 1pt.
-                const y = height - (box.y / 100) * height - (box.fontSize + 4);
+                // y = OriginY + Height - (TopPct * Height) - Correction
+                const y = pageOriginY + height - (box.y / 100) * height - (box.fontSize + 4);
 
                 // Get font with styles
                 const font = await getFont(pdfDoc, box.fontFamily, box.isBold, box.isItalic);
