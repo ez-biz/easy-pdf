@@ -51,6 +51,7 @@ Based on industry analysis of top PDF tools (Adobe, Smallpdf, PDFCandy, iLovePDF
 - ✅ Next.js Image Optimization
 - ✅ Responsive Design
 - ✅ Legal Pages (Privacy, Terms, Contact)
+- ✅ Comprehensive Documentation (Wiki)
 
 ---
 

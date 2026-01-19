@@ -16,7 +16,7 @@ A modern, privacy-focused PDF manipulation suite built with Next.js 15. All proc
 | **Organize** | Merge PDFs, Split PDF, Rotate Pages | ✅ Live |
 | **Convert** | PDF to Image, Image to PDF | ✅ Live |
 | **Optimize** | Compress PDF | ✅ Live |
-| **Edit** | Add Watermark, Add Page Numbers, Remove Pages, Extract Pages, Edit Metadata, Add Text, Add Image | ✅ Live |
+| **Edit** | Add Watermark, Add Page Numbers, Remove Pages, Extract Pages, Edit Metadata, Add Text, Add Image, **Sign PDF** | ✅ Live |
 | **Security** | Password Protect PDF, Unlock PDF | ✅ Live |
 
 ### Core Features
@@ -264,7 +264,7 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 
 - **Issues:** [GitHub Issues](https://github.com/ez-biz/easy-pdf/issues)
 - **Contact:** [Contact Page](/contact)
-- **Documentation:** This README + inline code docs
+- **Documentation:** See [`/docs`](/docs) for detailed architectural and feature documentation.
 
 ---
 
