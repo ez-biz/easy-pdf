@@ -129,7 +129,7 @@ export function PDFPageRenderer({
                     <p className="text-red-600 dark:text-red-400">Error: {error}</p>
                 </div>
             )}
-            <canvas ref={canvasRef} className="w-full h-auto" />
+            <canvas ref={canvasRef} className="w-full h-auto block" />
         </div>
     );
 }

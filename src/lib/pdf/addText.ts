@@ -99,8 +99,9 @@ export async function addTextToPDF(
                 // Convert percentage coordinates to absolute
                 const x = (box.x / 100) * width;
                 // PDF coordinates are from bottom-left, UI is from top-left
-                // Adjust for font size because PDF draws from baseline UP, while UI draws from Top DOWN
-                const y = height - (box.y / 100) * height - box.fontSize;
+                // Adjust for font size (baseline) and UI padding (~4pt)
+                // UI has p-1 (4px) padding, pushing text down. We typically map 1px ~ 1pt.
+                const y = height - (box.y / 100) * height - (box.fontSize + 4);
 
                 // Get font with styles
                 const font = await getFont(pdfDoc, box.fontFamily, box.isBold, box.isItalic);
