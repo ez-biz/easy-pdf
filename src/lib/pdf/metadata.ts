@@ -26,7 +26,9 @@ export async function readMetadata(file: File): Promise<{
         const title = pdfDoc.getTitle() || "";
         const author = pdfDoc.getAuthor() || "";
         const subject = pdfDoc.getSubject() || "";
-        const keywords = pdfDoc.getKeywords() || "";
+        // getKeywords() returns an array, convert to comma-separated string
+        const keywordsArray = pdfDoc.getKeywords() || [];
+        const keywords = Array.isArray(keywordsArray) ? keywordsArray.join(", ") : "";
         const creator = pdfDoc.getCreator() || "";
         const producer = pdfDoc.getProducer() || "";
         const creationDate = pdfDoc.getCreationDate() || null;
