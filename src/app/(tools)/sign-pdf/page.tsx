@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { PenTool, Upload, Trash2 } from "lucide-react"; // PenTool icon for Sign
+import { PenTool, Upload, Trash2, Wand2, Palette } from "lucide-react";
 import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
@@ -13,6 +13,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { useAppStore } from "@/store/useAppStore";
 import { DraggableImageBox } from "@/components/tools/DraggableImageBox";
 import { SignaturePad } from "@/components/tools/SignaturePad";
+import { removeWhiteBackground, changeImageColor } from "@/lib/image-processing";
 
 export default function SignPdfPage() {
     const [files, setFiles] = useState<FileWithPreview[]>([]);
@@ -26,11 +27,14 @@ export default function SignPdfPage() {
 
     // Store image URLs for preview mapping
     const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
-    // Store aspect ratios
     const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
 
+    // Track color cycle state per signature
+    const [tintIndices, setTintIndices] = useState<Record<string, number>>({});
+    const TINT_COLORS = ["#000000", "#2563eb", "#dc2626"]; // Black, Blue, Red
+
     const canvasRef = useRef<HTMLDivElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null); // For uploading signature image
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const toast = useToast();
     const { addActivity, incrementProcessed } = useAppStore();
 
@@ -38,10 +42,10 @@ export default function SignPdfPage() {
         setFiles(newFiles);
         setDownloadUrl(null);
         setOverlays([]);
-        // Reset image urls/blobs
         Object.values(imageUrls).forEach(url => URL.revokeObjectURL(url));
         setImageUrls({});
         setAspectRatios({});
+        setTintIndices({});
 
         try {
             const buffer = await newFiles[0].file.arrayBuffer();
@@ -53,7 +57,6 @@ export default function SignPdfPage() {
         }
     };
 
-    // Helper to add a signature/image to the current page
     const addSignatureToPage = async (blob: Blob, name: string) => {
         const objectUrl = URL.createObjectURL(blob);
         const img = new Image();
@@ -61,10 +64,7 @@ export default function SignPdfPage() {
             const ratio = img.width / img.height;
             const id = Math.random().toString(36).substring(7);
 
-            // Initial size: 20% width
             const initialWidthPct = 20;
-
-            // We need container aspect ratio to calculate initial height %
             let initialHeightPct = 20;
             const container = canvasRef.current;
 
@@ -74,13 +74,12 @@ export default function SignPdfPage() {
                 initialHeightPct = initialWidthPct * (containerRatio / ratio);
             }
 
-            // Create a file object from blob for the API
             const file = new File([blob], name, { type: blob.type });
 
             setOverlays(prev => [...prev, {
                 id,
                 file: file,
-                x: 30, // Center-ish
+                x: 30,
                 y: 30,
                 width: initialWidthPct,
                 height: initialHeightPct,
@@ -97,7 +96,6 @@ export default function SignPdfPage() {
 
     const handleSignatureSave = async (dataUrl: string) => {
         setShowSignaturePad(false);
-        // Convert base64 to blob
         try {
             const res = await fetch(dataUrl);
             const blob = await res.blob();
@@ -112,7 +110,58 @@ export default function SignPdfPage() {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             addSignatureToPage(file, file.name);
-            e.target.value = ""; // Reset
+            e.target.value = "";
+        }
+    };
+
+    const handleCleanBackground = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const currentUrl = imageUrls[id];
+        if (!currentUrl) return;
+
+        try {
+            const newUrl = await removeWhiteBackground(currentUrl);
+
+            // Convert to blob
+            const res = await fetch(newUrl);
+            const blob = await res.blob();
+            const file = new File([blob], "cleaned-signature.png", { type: "image/png" });
+
+            // Update state
+            setImageUrls(prev => ({ ...prev, [id]: newUrl }));
+            setOverlays(prev => prev.map(o => o.id === id ? { ...o, file: file } : o));
+
+            toast.success("Background removed!");
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to remove background");
+        }
+    };
+
+    const handleCycleTint = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const currentUrl = imageUrls[id];
+        if (!currentUrl) return;
+
+        const currentIndex = tintIndices[id] || 0;
+        const nextIndex = (currentIndex + 1) % TINT_COLORS.length;
+        const targetColor = TINT_COLORS[nextIndex];
+
+        try {
+            const newUrl = await changeImageColor(currentUrl, targetColor);
+
+            // Convert to blob
+            const res = await fetch(newUrl);
+            const blob = await res.blob();
+            const file = new File([blob], "tinted-signature.png", { type: "image/png" });
+
+            setImageUrls(prev => ({ ...prev, [id]: newUrl }));
+            setOverlays(prev => prev.map(o => o.id === id ? { ...o, file: file } : o));
+            setTintIndices(prev => ({ ...prev, [id]: nextIndex }));
+
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to change color");
         }
     };
 
@@ -157,6 +206,7 @@ export default function SignPdfPage() {
         setOverlays([]);
         setImageUrls({});
         setAspectRatios({});
+        setTintIndices({});
         setSelectedId(null);
     };
 
@@ -236,12 +286,11 @@ export default function SignPdfPage() {
                                     onPageRendered={handlePageRendered}
                                 />
 
-                                {/* Overlays for current page */}
                                 {overlays
                                     .filter(o => o.page === currentPage - 1)
                                     .map(overlay => (
                                         <DraggableImageBox
-                                            key={overlay.id}
+                                            key={`${overlay.id}-${overlay.x}-${overlay.y}-${overlay.width}-${overlay.height}`}
                                             overlay={overlay}
                                             containerRef={canvasRef}
                                             isSelected={selectedId === overlay.id}
@@ -272,8 +321,8 @@ export default function SignPdfPage() {
                                             <div
                                                 key={overlay.id}
                                                 className={`flex items-center gap-2 p-2 rounded text-sm cursor-pointer border ${selectedId === overlay.id
-                                                    ? "bg-primary-50 border-primary-200 dark:bg-primary-900/20 dark:border-primary-800"
-                                                    : "hover:bg-surface-50 dark:hover:bg-surface-700 border-transparent"
+                                                        ? "bg-primary-50 border-primary-200 dark:bg-primary-900/20 dark:border-primary-800"
+                                                        : "hover:bg-surface-50 dark:hover:bg-surface-700 border-transparent"
                                                     }`}
                                                 onClick={() => {
                                                     setCurrentPage(overlay.page + 1);
@@ -287,15 +336,32 @@ export default function SignPdfPage() {
                                                 <div className="flex-1 truncate">
                                                     Signature (Page {overlay.page + 1})
                                                 </div>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteOverlay(overlay.id);
-                                                    }}
-                                                    className="text-surface-400 hover:text-red-500"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+
+                                                <div className="flex items-center">
+                                                    <button
+                                                        onClick={(e) => handleCycleTint(overlay.id, e)}
+                                                        className="p-1 text-surface-400 hover:text-blue-500 rounded hover:bg-surface-100 dark:hover:bg-surface-700 mr-1"
+                                                        title="Change Ink Color"
+                                                    >
+                                                        <Palette className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleCleanBackground(overlay.id, e)}
+                                                        className="p-1 text-surface-400 hover:text-primary-500 rounded hover:bg-surface-100 dark:hover:bg-surface-700 mr-1"
+                                                        title="Remove White Background"
+                                                    >
+                                                        <Wand2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteOverlay(overlay.id);
+                                                        }}
+                                                        className="p-1 text-surface-400 hover:text-red-500 rounded hover:bg-surface-100 dark:hover:bg-surface-700"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))
                                     )}

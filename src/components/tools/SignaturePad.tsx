@@ -13,6 +13,7 @@ export function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [hasSignature, setHasSignature] = useState(false);
+    const [color, setColor] = useState("#000000");
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -23,9 +24,9 @@ export function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
             ctx.lineWidth = 2;
             ctx.lineCap = "round";
             ctx.lineJoin = "round";
-            ctx.strokeStyle = "#000000";
+            ctx.strokeStyle = color;
         }
-    }, []);
+    }, [color]);
 
     const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
         const canvas = canvasRef.current;
@@ -36,6 +37,8 @@ export function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
 
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
+
+        ctx.strokeStyle = color;
 
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -80,13 +83,64 @@ export function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
         setHasSignature(false);
     };
 
+    const getContentBoundingBox = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+        const pixels = ctx.getImageData(0, 0, width, height).data;
+        let minX = width;
+        let minY = height;
+        let maxX = 0;
+        let maxY = 0;
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const index = (y * width + x) * 4;
+                const alpha = pixels[index + 3];
+                if (alpha > 0) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+
+        // Return null if empty
+        if (maxX < minX) return null;
+
+        return { minX, minY, width: maxX - minX + 1, height: maxY - minY + 1 };
+    };
+
     const save = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        // Trim whitespace logic could go here, but full canvas is fine for now.
-        // We could also allow color selection.
-        const dataUrl = canvas.toDataURL("image/png");
-        onSave(dataUrl);
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        const bounds = getContentBoundingBox(ctx, canvas.width, canvas.height);
+
+        // If empty or analysis failed, fallback to full
+        if (!bounds) {
+            onSave(canvas.toDataURL("image/png"));
+            return;
+        }
+
+        // Create temp canvas for cropped image
+        const padding = 10;
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = bounds.width + (padding * 2);
+        tempCanvas.height = bounds.height + (padding * 2);
+
+        const tempCtx = tempCanvas.getContext("2d");
+        if (!tempCtx) return;
+
+        // Draw cropped data
+        tempCtx.drawImage(
+            canvas,
+            bounds.minX, bounds.minY, bounds.width, bounds.height,
+            padding, padding, bounds.width, bounds.height
+        );
+
+        onSave(tempCanvas.toDataURL("image/png"));
     };
 
     return (
@@ -96,6 +150,26 @@ export function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
                 <button onClick={onCancel} className="text-surface-500 hover:text-surface-700 dark:hover:text-surface-300">
                     <X className="w-5 h-5" />
                 </button>
+            </div>
+
+            {/* Color Selection */}
+            <div className="flex justify-center gap-3 mb-4">
+                {[
+                    { val: "#000000", bg: "bg-black", label: "Black" },
+                    { val: "#2563eb", bg: "bg-blue-600", label: "Blue" },
+                    { val: "#dc2626", bg: "bg-red-600", label: "Red" },
+                ].map((c) => (
+                    <button
+                        key={c.val}
+                        onClick={() => setColor(c.val)}
+                        className={`w-8 h-8 rounded-full ${c.bg} transition-all ${color === c.val
+                                ? "ring-2 ring-offset-2 ring-primary-500 dark:ring-offset-surface-800 scale-110"
+                                : "hover:scale-105 opacity-80 hover:opacity-100"
+                            }`}
+                        title={c.label}
+                        aria-label={`Select ${c.label} ink`}
+                    />
+                ))}
             </div>
 
             <div className="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-lg bg-white overflow-hidden touch-none">
