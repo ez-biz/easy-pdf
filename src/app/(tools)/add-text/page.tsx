@@ -101,17 +101,12 @@ function DraggableTextBox({
                         {/* Resize Handle (Bottom Right) */}
                         <div
                             className="absolute -bottom-2 -right-2 w-4 h-4 bg-primary-500 border-2 border-white rounded-full cursor-se-resize shadow-sm"
-                            draggable={true}
-                            onDragStart={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                            }}
-                            onMouseDown={(e) => {
+                            onPointerDown={(e) => {
                                 e.stopPropagation();
                                 const startY = e.clientY;
                                 const startSize = box.fontSize;
 
-                                const handleMouseMove = (moveEvent: MouseEvent) => {
+                                const handlePointerMove = (moveEvent: PointerEvent) => {
                                     const delta = moveEvent.clientY - startY;
                                     // Dragging down (increasing Y) increases size
                                     // Dragging up (decreasing Y) decreases size
@@ -119,13 +114,13 @@ function DraggableTextBox({
                                     onUpdate(box.id, { fontSize: newSize });
                                 };
 
-                                const handleMouseUp = () => {
-                                    window.removeEventListener("mousemove", handleMouseMove);
-                                    window.removeEventListener("mouseup", handleMouseUp);
+                                const handlePointerUp = () => {
+                                    window.removeEventListener("pointermove", handlePointerMove);
+                                    window.removeEventListener("pointerup", handlePointerUp);
                                 };
 
-                                window.addEventListener("mousemove", handleMouseMove);
-                                window.addEventListener("mouseup", handleMouseUp);
+                                window.addEventListener("pointermove", handlePointerMove);
+                                window.addEventListener("pointerup", handlePointerUp);
                             }}
                         />
                     </>
