@@ -73,8 +73,8 @@ function DraggableImageBox({
             <div
                 ref={boxRef}
                 className={`relative group h-full ${isSelected
-                        ? "ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-surface-800"
-                        : "hover:ring-1 hover:ring-primary-300"
+                    ? "ring-2 ring-primary-500"
+                    : "hover:ring-1 hover:ring-primary-300"
                     } rounded cursor-move transition-shadow`}
                 style={{
                     transform: `rotate(${overlay.rotation}deg)`,
@@ -429,8 +429,8 @@ export default function AddImagePage() {
                                             <div
                                                 key={overlay.id}
                                                 className={`flex items-center gap-2 p-2 rounded text-sm cursor-pointer border ${selectedId === overlay.id
-                                                        ? "bg-primary-50 border-primary-200 dark:bg-primary-900/20 dark:border-primary-800"
-                                                        : "hover:bg-surface-50 dark:hover:bg-surface-700 border-transparent"
+                                                    ? "bg-primary-50 border-primary-200 dark:bg-primary-900/20 dark:border-primary-800"
+                                                    : "hover:bg-surface-50 dark:hover:bg-surface-700 border-transparent"
                                                     }`}
                                                 onClick={() => {
                                                     setCurrentPage(overlay.page + 1);
