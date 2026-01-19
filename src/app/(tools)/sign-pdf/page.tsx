@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Image as ImageIcon, Trash2, Plus } from "lucide-react";
+import { PenTool, Upload, Trash2, Wand2, Palette } from "lucide-react";
 import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
@@ -12,8 +12,10 @@ import { addImagesToPDF, ImageOverlay } from "@/lib/pdf/addImage";
 import { useToast } from "@/contexts/ToastContext";
 import { useAppStore } from "@/store/useAppStore";
 import { DraggableImageBox } from "@/components/tools/DraggableImageBox";
+import { SignaturePad } from "@/components/tools/SignaturePad";
+import { removeWhiteBackground, changeImageColor } from "@/lib/image-processing";
 
-export default function AddImagePage() {
+export default function SignPdfPage() {
     const [files, setFiles] = useState<FileWithPreview[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [numPages, setNumPages] = useState(0);
@@ -21,11 +23,15 @@ export default function AddImagePage() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [showSignaturePad, setShowSignaturePad] = useState(false);
 
     // Store image URLs for preview mapping
     const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
-    // Store aspect ratios
     const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
+
+    // Track color cycle state per signature
+    const [tintIndices, setTintIndices] = useState<Record<string, number>>({});
+    const TINT_COLORS = ["#000000", "#2563eb", "#dc2626"]; // Black, Blue, Red
 
     const canvasRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -36,10 +42,10 @@ export default function AddImagePage() {
         setFiles(newFiles);
         setDownloadUrl(null);
         setOverlays([]);
-        // Reset image urls
         Object.values(imageUrls).forEach(url => URL.revokeObjectURL(url));
         setImageUrls({});
         setAspectRatios({});
+        setTintIndices({});
 
         try {
             const buffer = await newFiles[0].file.arrayBuffer();
@@ -51,52 +57,111 @@ export default function AddImagePage() {
         }
     };
 
-    const handleAddImageClick = () => {
-        fileInputRef.current?.click();
+    const addSignatureToPage = async (blob: Blob, name: string) => {
+        const objectUrl = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+            const ratio = img.width / img.height;
+            const id = Math.random().toString(36).substring(7);
+
+            const initialWidthPct = 20;
+            let initialHeightPct = 20;
+            const container = canvasRef.current;
+
+            if (container) {
+                const rect = container.getBoundingClientRect();
+                const containerRatio = rect.width / rect.height;
+                initialHeightPct = initialWidthPct * (containerRatio / ratio);
+            }
+
+            const file = new File([blob], name, { type: blob.type });
+
+            setOverlays(prev => [...prev, {
+                id,
+                file: file,
+                x: 30,
+                y: 30,
+                width: initialWidthPct,
+                height: initialHeightPct,
+                page: currentPage - 1,
+                rotation: 0
+            }]);
+
+            setImageUrls(prev => ({ ...prev, [id]: objectUrl }));
+            setAspectRatios(prev => ({ ...prev, [id]: ratio }));
+            setSelectedId(id);
+        };
+        img.src = objectUrl;
     };
 
-    const handleImageSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleSignatureSave = async (dataUrl: string) => {
+        setShowSignaturePad(false);
+        try {
+            const res = await fetch(dataUrl);
+            const blob = await res.blob();
+            await addSignatureToPage(blob, "signature.png");
+        } catch (e) {
+            console.error("Failed to process signature", e);
+            toast.error("Failed to add signature");
+        }
+    };
+
+    const handleUploadSignature = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            const imgFile = e.target.files[0];
-            const objectUrl = URL.createObjectURL(imgFile);
-            const img = new Image();
-            img.onload = () => {
-                const ratio = img.width / img.height;
-                const id = Math.random().toString(36).substring(7);
+            const file = e.target.files[0];
+            addSignatureToPage(file, file.name);
+            e.target.value = "";
+        }
+    };
 
-                // Initial size: 20% width
-                const initialWidthPct = 20;
+    const handleCleanBackground = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const currentUrl = imageUrls[id];
+        if (!currentUrl) return;
 
-                // We need container aspect ratio to calculate initial height %
-                let initialHeightPct = 20;
-                const container = canvasRef.current;
+        try {
+            const newUrl = await removeWhiteBackground(currentUrl);
 
-                if (container) {
-                    const rect = container.getBoundingClientRect();
-                    const containerRatio = rect.width / rect.height;
-                    // H% = W% * (ContRatio / ImgRatio)
-                    initialHeightPct = initialWidthPct * (containerRatio / ratio);
-                }
+            // Convert to blob
+            const res = await fetch(newUrl);
+            const blob = await res.blob();
+            const file = new File([blob], "cleaned-signature.png", { type: "image/png" });
 
-                setOverlays(prev => [...prev, {
-                    id,
-                    file: imgFile,
-                    x: 10,
-                    y: 10,
-                    width: initialWidthPct,
-                    height: initialHeightPct,
-                    page: currentPage - 1,
-                    rotation: 0
-                }]);
+            // Update state
+            setImageUrls(prev => ({ ...prev, [id]: newUrl }));
+            setOverlays(prev => prev.map(o => o.id === id ? { ...o, file: file } : o));
 
-                setImageUrls(prev => ({ ...prev, [id]: objectUrl }));
-                setAspectRatios(prev => ({ ...prev, [id]: ratio }));
-                setSelectedId(id);
+            toast.success("Background removed!");
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to remove background");
+        }
+    };
 
-                // Reset input
-                if (fileInputRef.current) fileInputRef.current.value = "";
-            };
-            img.src = objectUrl;
+    const handleCycleTint = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const currentUrl = imageUrls[id];
+        if (!currentUrl) return;
+
+        const currentIndex = tintIndices[id] || 0;
+        const nextIndex = (currentIndex + 1) % TINT_COLORS.length;
+        const targetColor = TINT_COLORS[nextIndex];
+
+        try {
+            const newUrl = await changeImageColor(currentUrl, targetColor);
+
+            // Convert to blob
+            const res = await fetch(newUrl);
+            const blob = await res.blob();
+            const file = new File([blob], "tinted-signature.png", { type: "image/png" });
+
+            setImageUrls(prev => ({ ...prev, [id]: newUrl }));
+            setOverlays(prev => prev.map(o => o.id === id ? { ...o, file: file } : o));
+            setTintIndices(prev => ({ ...prev, [id]: nextIndex }));
+
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to change color");
         }
     };
 
@@ -109,10 +174,7 @@ export default function AddImagePage() {
         if (selectedId === id) setSelectedId(null);
     };
 
-    // Stable callback to prevent PDF re-render
-    const handlePageRendered = useCallback(() => {
-        // No-op
-    }, []);
+    const handlePageRendered = useCallback(() => { }, []);
 
     const handleDownload = async () => {
         if (!files.length) return;
@@ -125,11 +187,11 @@ export default function AddImagePage() {
                 const blob = new Blob([result.data as any], { type: "application/pdf" });
                 const url = URL.createObjectURL(blob);
                 setDownloadUrl(url);
-                toast.success("PDF updated successfully!");
-                addActivity({ toolName: "Add Image to PDF", fileName: files[0].name });
+                toast.success("PDF signed successfully!");
+                addActivity({ toolName: "Sign PDF", fileName: files[0].name });
                 incrementProcessed();
             } else {
-                toast.error(result.error || "Failed to add images");
+                toast.error(result.error || "Failed to sign PDF");
             }
         } catch {
             toast.error("An error occurred");
@@ -144,15 +206,16 @@ export default function AddImagePage() {
         setOverlays([]);
         setImageUrls({});
         setAspectRatios({});
+        setTintIndices({});
         setSelectedId(null);
     };
 
     return (
         <ToolLayout
-            title="Add Image to PDF"
-            description="Overlay images onto your PDF documents"
-            icon={ImageIcon}
-            color="from-green-500 to-green-600"
+            title="Sign PDF"
+            description="Add your signature to PDF documents"
+            icon={PenTool}
+            color="from-violet-500 to-violet-600"
         >
             <div className="space-y-6">
                 {!downloadUrl && (
@@ -193,17 +256,21 @@ export default function AddImagePage() {
                                     </Button>
                                 </div>
 
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                    accept="image/png, image/jpeg, image/jpg"
-                                    onChange={handleImageSelected}
-                                />
-
-                                <Button onClick={handleAddImageClick} size="sm" className="gap-2">
-                                    <Plus className="w-4 h-4" /> Add Image
-                                </Button>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        accept="image/png, image/jpeg"
+                                        onChange={handleUploadSignature}
+                                    />
+                                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                                        <Upload className="w-4 h-4 mr-2" /> Upload Image
+                                    </Button>
+                                    <Button onClick={() => setShowSignaturePad(true)} size="sm" className="gap-2">
+                                        <PenTool className="w-4 h-4" /> Add Signature
+                                    </Button>
+                                </div>
                             </div>
 
                             {/* Canvas */}
@@ -219,7 +286,6 @@ export default function AddImagePage() {
                                     onPageRendered={handlePageRendered}
                                 />
 
-                                {/* Overlays for current page */}
                                 {overlays
                                     .filter(o => o.page === currentPage - 1)
                                     .map(overlay => (
@@ -241,17 +307,17 @@ export default function AddImagePage() {
 
                         {/* Sidebar */}
                         <div className="space-y-6">
-                            {/* Images List */}
+                            {/* Signatures List */}
                             <div className="bg-white dark:bg-surface-800 rounded-xl shadow-sm border border-surface-200 dark:border-surface-700 p-4">
                                 <h3 className="font-semibold mb-3 flex items-center gap-2">
-                                    <ImageIcon className="w-4 h-4" /> Images
+                                    <PenTool className="w-4 h-4" /> Signatures
                                 </h3>
 
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto">
                                     {overlays.length === 0 ? (
-                                        <p className="text-sm text-surface-500 italic">No images added yet.</p>
+                                        <p className="text-sm text-surface-500 italic">No signatures added yet.</p>
                                     ) : (
-                                        overlays.map((overlay, idx) => (
+                                        overlays.map((overlay, i) => (
                                             <div
                                                 key={overlay.id}
                                                 className={`flex items-center gap-2 p-2 rounded text-sm cursor-pointer border ${selectedId === overlay.id
@@ -263,22 +329,39 @@ export default function AddImagePage() {
                                                     setSelectedId(overlay.id);
                                                 }}
                                             >
-                                                <div className="w-8 h-8 rounded overflow-hidden bg-surface-100 flex-shrink-0">
+                                                <div className="w-12 h-8 rounded overflow-hidden bg-white border flex-shrink-0 flex items-center justify-center">
                                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img src={imageUrls[overlay.id]} className="w-full h-full object-cover" alt="" />
+                                                    <img src={imageUrls[overlay.id]} className="max-w-full max-h-full object-contain" alt="" />
                                                 </div>
                                                 <div className="flex-1 truncate">
-                                                    Image {idx + 1} (Page {overlay.page + 1})
+                                                    Signature (Page {overlay.page + 1})
                                                 </div>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteOverlay(overlay.id);
-                                                    }}
-                                                    className="text-surface-400 hover:text-red-500"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+
+                                                <div className="flex items-center">
+                                                    <button
+                                                        onClick={(e) => handleCycleTint(overlay.id, e)}
+                                                        className="p-1 text-surface-400 hover:text-blue-500 rounded hover:bg-surface-100 dark:hover:bg-surface-700 mr-1"
+                                                        title="Change Ink Color"
+                                                    >
+                                                        <Palette className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleCleanBackground(overlay.id, e)}
+                                                        className="p-1 text-surface-400 hover:text-primary-500 rounded hover:bg-surface-100 dark:hover:bg-surface-700 mr-1"
+                                                        title="Remove White Background"
+                                                    >
+                                                        <Wand2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteOverlay(overlay.id);
+                                                        }}
+                                                        className="p-1 text-surface-400 hover:text-red-500 rounded hover:bg-surface-100 dark:hover:bg-surface-700"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))
                                     )}
@@ -303,17 +386,17 @@ export default function AddImagePage() {
                 {downloadUrl && (
                     <div className="text-center space-y-6">
                         <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto">
-                            <ImageIcon className="w-10 h-10 text-green-600 dark:text-green-400" />
+                            <PenTool className="w-10 h-10 text-green-600 dark:text-green-400" />
                         </div>
                         <h3 className="text-xl font-semibold">Success!</h3>
                         <div className="flex justify-center gap-4">
                             <DownloadButton
                                 isReady={true}
-                                filename={`images-added-${files[0]?.name || 'document.pdf'}`}
+                                filename={`signed-${files[0]?.name || 'document.pdf'}`}
                                 onClick={() => {
                                     const a = document.createElement('a');
                                     a.href = downloadUrl;
-                                    a.download = `images-added-${files[0]?.name || 'document.pdf'}`;
+                                    a.download = `signed-${files[0]?.name || 'document.pdf'}`;
                                     document.body.appendChild(a);
                                     a.click();
                                     document.body.removeChild(a);
@@ -321,6 +404,16 @@ export default function AddImagePage() {
                             />
                             <Button onClick={handleStartOver} variant="outline">Start Over</Button>
                         </div>
+                    </div>
+                )}
+
+                {/* Signature Pad Modal */}
+                {showSignaturePad && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                        <SignaturePad
+                            onSave={handleSignatureSave}
+                            onCancel={() => setShowSignaturePad(false)}
+                        />
                     </div>
                 )}
             </div>

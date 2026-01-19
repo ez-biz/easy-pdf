@@ -201,7 +201,6 @@ export const TOOLS: Tool[] = [
         icon: "PenTool",
         category: "edit",
         color: "from-violet-500 to-violet-600",
-        comingSoon: true,
     },
     {
         id: "edit-pdf",
