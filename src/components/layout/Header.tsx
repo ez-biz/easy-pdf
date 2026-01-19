@@ -151,6 +151,14 @@ export function Header() {
 
                     {/* Right Side Actions */}
                     <div className="flex items-center gap-2">
+                        {/* Settings Link */}
+                        <Link
+                            href="/settings"
+                            className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                        >
+                            Settings
+                        </Link>
+
                         {/* Dark Mode Toggle */}
                         <button
                             type="button"
