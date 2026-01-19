@@ -12,6 +12,7 @@ export default function SettingsPage() {
         updateSettings,
         toggleDarkMode,
         recentActivity,
+        removeActivity,
         clearActivity,
         totalProcessed
     } = useAppStore();
@@ -161,7 +162,7 @@ export default function SettingsPage() {
                                             return (
                                                 <div
                                                     key={activity.id}
-                                                    className="flex items-start gap-4 p-4 rounded-lg bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                                                    className="group flex items-start gap-4 p-4 rounded-lg bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors relative"
                                                 >
                                                     <div className={`p-2 rounded-lg bg-gradient-to-br ${tool?.color || 'from-gray-500 to-gray-600'} flex-shrink-0`}>
                                                         <div className="w-5 h-5 bg-white/20 rounded" />
@@ -174,9 +175,18 @@ export default function SettingsPage() {
                                                             {activity.fileName}
                                                         </p>
                                                     </div>
-                                                    <span className="text-xs text-surface-500 dark:text-surface-400 flex-shrink-0">
-                                                        {formatTimestamp(activity.timestamp)}
-                                                    </span>
+                                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                                        <span className="text-xs text-surface-500 dark:text-surface-400">
+                                                            {formatTimestamp(activity.timestamp)}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => removeActivity(activity.id)}
+                                                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-surface-400 hover:text-red-600 dark:hover:text-red-400 transition-all"
+                                                            title="Remove this item"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             );
                                         })}

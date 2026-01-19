@@ -8,7 +8,7 @@
 2. **Completion -> Merge/PR**: When a feature is complete and verified:
    - Ensure all tests/verification steps pass.
    - Create a Pull Request (PR) or merge request.
-   - Merge into `main` only after verified.
+   - Ask to merge into `main` only after verified.
 
 3. **Verification**: Always verify the build (`npm run build`) and functionality before merging.
 
