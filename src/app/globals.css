@@ -1,0 +1,220 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --background: 210 20% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --primary: 172 66% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 221 83% 53%;
+  --secondary-foreground: 0 0% 100%;
+  --accent: 262 83% 58%;
+  --accent-foreground: 0 0% 100%;
+  --muted: 210 20% 96%;
+  --muted-foreground: 220 8% 46%;
+  --border: 220 13% 91%;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: 222 47% 11%;
+  --foreground: 210 20% 98%;
+  --card: 222 47% 15%;
+  --card-foreground: 210 20% 98%;
+  --primary: 172 66% 50%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 221 83% 53%;
+  --secondary-foreground: 0 0% 100%;
+  --accent: 262 83% 58%;
+  --accent-foreground: 0 0% 100%;
+  --muted: 222 47% 20%;
+  --muted-foreground: 220 8% 65%;
+  --border: 222 47% 25%;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Utility Classes */
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500;
+  }
+
+  .glass {
+    @apply bg-white/80 dark:bg-surface-900/80 backdrop-blur-xl border border-white/20 dark:border-surface-700/50;
+  }
+
+  .glass-card {
+    @apply bg-white/60 dark:bg-surface-800/60 backdrop-blur-lg border border-white/30 dark:border-surface-700/30;
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover;
+  }
+
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-surface-900;
+  }
+
+  .animate-in {
+    animation: animateIn 0.5s ease-out forwards;
+  }
+}
+
+@keyframes animateIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Background Patterns */
+.bg-grid {
+  background-image: 
+    linear-gradient(to right, hsl(var(--border) / 0.5) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border) / 0.5) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.bg-dots {
+  background-image: radial-gradient(circle, hsl(var(--muted-foreground) / 0.2) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Hero Gradient Background */
+.hero-bg {
+  background: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(20, 184, 166, 0.15), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(59, 130, 246, 0.1), transparent),
+    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(147, 51, 234, 0.1), transparent);
+}
+
+.dark .hero-bg {
+  background: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(20, 184, 166, 0.2), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(59, 130, 246, 0.15), transparent),
+    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(147, 51, 234, 0.15), transparent);
+}
+
+/* File Drop Zone */
+.drop-zone {
+  @apply relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-2xl p-8 transition-all duration-300;
+}
+
+.drop-zone:hover,
+.drop-zone.active {
+  @apply border-primary-500 bg-primary-50/50 dark:bg-primary-900/20;
+}
+
+.drop-zone.active {
+  @apply ring-4 ring-primary-500/20;
+}
+
+/* Tool Cards */
+.tool-card {
+  @apply bg-white dark:bg-surface-800 rounded-2xl p-6 shadow-card transition-all duration-300 border border-surface-100 dark:border-surface-700;
+}
+
+.tool-card:hover {
+  @apply shadow-card-hover -translate-y-1 border-primary-200 dark:border-primary-800;
+}
+
+/* Buttons */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 font-medium rounded-xl transition-all duration-200 focus-ring disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-primary {
+  @apply btn bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40;
+}
+
+.btn-secondary {
+  @apply btn bg-surface-100 dark:bg-surface-700 text-surface-900 dark:text-surface-100 hover:bg-surface-200 dark:hover:bg-surface-600;
+}
+
+.btn-ghost {
+  @apply btn hover:bg-surface-100 dark:hover:bg-surface-800;
+}
+
+.btn-danger {
+  @apply btn bg-red-500 text-white hover:bg-red-600;
+}
+
+/* Progress Bar */
+.progress-bar {
+  @apply h-2 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden;
+}
+
+.progress-bar-fill {
+  @apply h-full bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full transition-all duration-500 ease-out;
+}
+
+/* Loading Spinner */
+.spinner {
+  @apply w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin;
+}
+
+/* Toast Notifications */
+.toast {
+  @apply fixed bottom-4 right-4 px-6 py-4 rounded-xl shadow-lg backdrop-blur-lg animate-slide-up z-50;
+}
+
+.toast-success {
+  @apply toast bg-green-500/90 text-white;
+}
+
+.toast-error {
+  @apply toast bg-red-500/90 text-white;
+}
+
+.toast-info {
+  @apply toast bg-secondary-500/90 text-white;
+}
