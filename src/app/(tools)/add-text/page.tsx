@@ -32,9 +32,13 @@ function DraggableTextBox({
     onUpdate,
     onDelete,
 }: DraggableTextBoxProps) {
+    const controls = useDragControls();
+
     return (
         <motion.div
             drag
+            dragControls={controls}
+            dragListener={false}
             dragMomentum={false}
             dragConstraints={containerRef}
             onDragEnd={(_, info) => {
@@ -68,6 +72,9 @@ function DraggableTextBox({
                     ? "ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-surface-800"
                     : "hover:ring-1 hover:ring-primary-300"
                     } rounded p-1 cursor-move transition-shadow`}
+                onPointerDown={(e) => {
+                    controls.start(e);
+                }}
             >
                 {/* Text Display */}
                 <div
@@ -94,6 +101,7 @@ function DraggableTextBox({
                                 e.stopPropagation();
                                 onDelete(box.id);
                             }}
+                            onPointerDown={(e) => e.stopPropagation()}
                         >
                             <Trash2 className="w-3 h-3" />
                         </div>
@@ -102,6 +110,7 @@ function DraggableTextBox({
                         <div
                             className="absolute -bottom-2 -right-2 w-4 h-4 bg-primary-500 border-2 border-white rounded-full cursor-se-resize shadow-sm"
                             onPointerDown={(e) => {
+                                e.preventDefault();
                                 e.stopPropagation();
                                 const startY = e.clientY;
                                 const startSize = box.fontSize;
