@@ -28,6 +28,7 @@ export interface UnlockResult {
  */
 export async function protectPDF(
     pdfFile: File,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _options: ProtectOptions
 ): Promise<ProtectResult> {
     // options are ready for future implementation when we have a server-side solution
@@ -62,6 +63,7 @@ export async function protectPDF(
  */
 export async function unlockPDF(
     pdfFile: File,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _password: string
 ): Promise<UnlockResult> {
     try {

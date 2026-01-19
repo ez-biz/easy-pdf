@@ -41,7 +41,7 @@ const defaultSettings: AppSettings = {
 
 export const useAppStore = create<AppState>()(
     persist(
-        (set, get) => ({
+        (set) => ({
             // Initial state
             settings: defaultSettings,
             recentActivity: [],

@@ -8,6 +8,10 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
+    output: "export",
+    images: {
+        unoptimized: true,
+    },
     webpack: (config) => {
         // Handle pdf.js worker
         config.resolve.alias.canvas = false;

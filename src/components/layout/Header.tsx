@@ -10,7 +10,7 @@ import {
     FileText,
     Layers,
     Scissors,
-    Image,
+    Image as ImageIcon,
     Minimize2,
     RotateCw,
     Moon,
@@ -46,7 +46,7 @@ export function Header() {
     const iconMap: { [key: string]: React.ReactNode } = {
         Layers: <Layers className="w-4 h-4" aria-hidden="true" />,
         Scissors: <Scissors className="w-4 h-4" aria-hidden="true" />,
-        Image: <Image className="w-4 h-4" aria-hidden="true" />,
+        Image: <ImageIcon className="w-4 h-4" aria-hidden="true" />,
         Minimize2: <Minimize2 className="w-4 h-4" aria-hidden="true" />,
         RotateCw: <RotateCw className="w-4 h-4" aria-hidden="true" />,
         FileText: <FileText className="w-4 h-4" aria-hidden="true" />,

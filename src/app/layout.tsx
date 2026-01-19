@@ -9,7 +9,11 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-    title: "EasyPDF - Free Online PDF Tools",
+    metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://easypdf.com"),
+    title: {
+        default: "EasyPDF - Free Online PDF Tools",
+        template: "%s | EasyPDF",
+    },
     description:
         "Merge, split, compress, convert PDFs and more. All the tools you need to work with PDFs, completely free and easy to use.",
     keywords: [
@@ -19,7 +23,22 @@ export const metadata: Metadata = {
         "compress PDF",
         "PDF converter",
         "free PDF tools",
+        "online pdf tools",
     ],
+    authors: [{ name: "EasyPDF Team" }],
+    creator: "EasyPDF",
+    publisher: "EasyPDF",
+    robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+            index: true,
+            follow: true,
+            "max-video-preview": -1,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+        },
+    },
     manifest: "/manifest.json",
     appleWebApp: {
         capable: true,
@@ -30,7 +49,15 @@ export const metadata: Metadata = {
         title: "EasyPDF - Free Online PDF Tools",
         description:
             "Merge, split, compress, convert PDFs and more. All the tools you need to work with PDFs.",
+        url: process.env.NEXT_PUBLIC_BASE_URL || "https://easypdf.com",
+        siteName: "EasyPDF",
+        locale: "en_US",
         type: "website",
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "EasyPDF - Free Online PDF Tools",
+        description: "All the tools you need to work with PDFs, completely free and easy to use.",
     },
 };
 
