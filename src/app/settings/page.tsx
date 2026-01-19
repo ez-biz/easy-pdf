@@ -211,9 +211,14 @@ export default function SettingsPage() {
                                     onClick={toggleDarkMode}
                                     className="w-full flex items-center justify-between p-4 rounded-lg border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
                                 >
-                                    <span className="font-medium text-surface-900 dark:text-white">
-                                        Dark Mode
-                                    </span>
+                                    <div>
+                                        <span className="font-medium text-surface-900 dark:text-white block">
+                                            Theme
+                                        </span>
+                                        <span className="text-sm text-surface-500 dark:text-surface-400">
+                                            {settings.isDarkMode ? 'Dark Mode' : 'Light Mode'}
+                                        </span>
+                                    </div>
                                     {settings.isDarkMode ? (
                                         <Moon className="w-5 h-5 text-primary-500" />
                                     ) : (
