@@ -16,7 +16,7 @@ A modern, privacy-focused PDF manipulation suite built with Next.js 15. All proc
 | **Organize** | Merge PDFs, Split PDF, Rotate Pages | ✅ Live |
 | **Convert** | PDF to Image, Image to PDF | ✅ Live |
 | **Optimize** | Compress PDF | ✅ Live |
-| **Edit** | Add Watermark, Add Page Numbers, Remove Pages, Extract Pages | ✅ Live |
+| **Edit** | Add Watermark, Add Page Numbers, Remove Pages, Extract Pages, Edit Metadata, Add Text, Add Image | ✅ Live |
 | **Security** | Password Protect PDF, Unlock PDF | ✅ Live |
 
 ### Core Features
@@ -166,6 +166,9 @@ Elegant feedback system with 4 types:
 - **Add Page Numbers** - Customizable page numbering
 - **Remove Pages** - Select and delete specific pages
 - **Extract Pages** - Create new PDF from selected pages
+- **Edit Metadata** - View and modify PDF title, author, subject, and keywords
+- **Add Text** - Insert text boxes with custom fonts, colors, and positioning
+- **Add Image** - Overlay images on PDF pages with resizing and rotation
 
 #### Security
 - **Protect PDF** - Add password protection (note: client-side limitation)
