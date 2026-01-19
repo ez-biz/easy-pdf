@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Menu,
@@ -66,6 +66,18 @@ export function Header() {
         Unlock: <Unlock className="w-4 h-4" aria-hidden="true" />,
         Wrench: <Wrench className="w-4 h-4" aria-hidden="true" />,
     };
+
+    // Lock body scroll when mobile menu is open
+    useEffect(() => {
+        if (mobileMenuOpen) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "unset";
+        }
+        return () => {
+            document.body.style.overflow = "unset";
+        };
+    }, [mobileMenuOpen]);
 
     return (
         <header className="fixed top-0 inset-x-0 z-50 glass border-b border-surface-200 dark:border-surface-700">
@@ -225,7 +237,7 @@ export function Header() {
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: "auto" }}
                             exit={{ opacity: 0, height: 0 }}
-                            className="lg:hidden border-t border-surface-200 dark:border-surface-700"
+                            className="lg:hidden border-t border-surface-200 dark:border-surface-700 max-h-[calc(100vh-4rem)] overflow-y-auto"
                         >
                             <div className="py-4 space-y-2">
                                 {TOOL_CATEGORIES.map((category) => (
