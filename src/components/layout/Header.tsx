@@ -15,6 +15,21 @@ import {
     RotateCw,
     Moon,
     Sun,
+    LayoutGrid,
+    FileImage,
+    FileType,
+    Table,
+    Sheet,
+    Droplets,
+    Hash,
+    Trash2,
+    FileOutput,
+    Type,
+    PenTool,
+    Edit3,
+    Lock,
+    Unlock,
+    Wrench,
 } from "lucide-react";
 import { TOOLS, TOOL_CATEGORIES } from "@/lib/constants";
 
@@ -31,11 +46,25 @@ export function Header() {
     const iconMap: { [key: string]: React.ReactNode } = {
         Layers: <Layers className="w-4 h-4" aria-hidden="true" />,
         Scissors: <Scissors className="w-4 h-4" aria-hidden="true" />,
-        // eslint-disable-next-line jsx-a11y/alt-text
-        ImageIcon: <Image className="w-4 h-4" aria-hidden="true" />,
+        Image: <Image className="w-4 h-4" aria-hidden="true" />,
         Minimize2: <Minimize2 className="w-4 h-4" aria-hidden="true" />,
         RotateCw: <RotateCw className="w-4 h-4" aria-hidden="true" />,
         FileText: <FileText className="w-4 h-4" aria-hidden="true" />,
+        LayoutGrid: <LayoutGrid className="w-4 h-4" aria-hidden="true" />,
+        FileImage: <FileImage className="w-4 h-4" aria-hidden="true" />,
+        FileType: <FileType className="w-4 h-4" aria-hidden="true" />,
+        Table: <Table className="w-4 h-4" aria-hidden="true" />,
+        Sheet: <Sheet className="w-4 h-4" aria-hidden="true" />,
+        Droplets: <Droplets className="w-4 h-4" aria-hidden="true" />,
+        Hash: <Hash className="w-4 h-4" aria-hidden="true" />,
+        Trash2: <Trash2 className="w-4 h-4" aria-hidden="true" />,
+        FileOutput: <FileOutput className="w-4 h-4" aria-hidden="true" />,
+        Type: <Type className="w-4 h-4" aria-hidden="true" />,
+        PenTool: <PenTool className="w-4 h-4" aria-hidden="true" />,
+        Edit3: <Edit3 className="w-4 h-4" aria-hidden="true" />,
+        Lock: <Lock className="w-4 h-4" aria-hidden="true" />,
+        Unlock: <Unlock className="w-4 h-4" aria-hidden="true" />,
+        Wrench: <Wrench className="w-4 h-4" aria-hidden="true" />,
     };
 
     return (
