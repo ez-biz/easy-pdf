@@ -19,10 +19,12 @@ export default function SettingsPage() {
 
     const [hasChanges, setHasChanges] = useState(false);
     const [localSettings, setLocalSettings] = useState(settings);
+    const [isHydrated, setIsHydrated] = useState(false);
 
     // Sync localSettings with store when it hydrates from localStorage
     useEffect(() => {
         setLocalSettings(settings);
+        setIsHydrated(true);
     }, [settings]);
 
     const handleSettingChange = (key: keyof typeof settings, value: string | boolean) => {
@@ -241,62 +243,74 @@ export default function SettingsPage() {
                                 </h2>
                             </div>
                             <div className="p-6 space-y-4">
+                                {!isHydrated ? (
+                                    // Loading skeleton
+                                    <>
+                                        <div className="animate-pulse space-y-4">
+                                            <div className="h-16 bg-surface-100 dark:bg-surface-800 rounded-lg"></div>
+                                            <div className="h-16 bg-surface-100 dark:bg-surface-800 rounded-lg"></div>
+                                            <div className="h-16 bg-surface-100 dark:bg-surface-800 rounded-lg"></div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        {/* Page Size */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                                                Page Size
+                                            </label>
+                                            <select
+                                                value={localSettings.defaultPageSize}
+                                                onChange={(e) => handleSettingChange('defaultPageSize', e.target.value as 'a4' | 'letter')}
+                                                className="w-full px-4 py-2 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-surface-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                            >
+                                                <option value="a4">A4 (210 × 297 mm)</option>
+                                                <option value="letter">Letter (8.5 × 11 in)</option>
+                                            </select>
+                                        </div>
 
-                                {/* Page Size */}
-                                <div>
-                                    <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
-                                        Page Size
-                                    </label>
-                                    <select
-                                        value={localSettings.defaultPageSize}
-                                        onChange={(e) => handleSettingChange('defaultPageSize', e.target.value as 'a4' | 'letter')}
-                                        className="w-full px-4 py-2 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-surface-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                    >
-                                        <option value="a4">A4 (210 × 297 mm)</option>
-                                        <option value="letter">Letter (8.5 × 11 in)</option>
-                                    </select>
-                                </div>
+                                        {/* Orientation */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                                                Orientation
+                                            </label>
+                                            <select
+                                                value={localSettings.defaultOrientation}
+                                                onChange={(e) => handleSettingChange('defaultOrientation', e.target.value as 'portrait' | 'landscape')}
+                                                className="w-full px-4 py-2 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-surface-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                            >
+                                                <option value="portrait">Portrait</option>
+                                                <option value="landscape">Landscape</option>
+                                            </select>
+                                        </div>
 
-                                {/* Orientation */}
-                                <div>
-                                    <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
-                                        Orientation
-                                    </label>
-                                    <select
-                                        value={localSettings.defaultOrientation}
-                                        onChange={(e) => handleSettingChange('defaultOrientation', e.target.value as 'portrait' | 'landscape')}
-                                        className="w-full px-4 py-2 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-surface-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                    >
-                                        <option value="portrait">Portrait</option>
-                                        <option value="landscape">Landscape</option>
-                                    </select>
-                                </div>
+                                        {/* Compression Level */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                                                Default Compression
+                                            </label>
+                                            <select
+                                                value={localSettings.compressionLevel}
+                                                onChange={(e) => handleSettingChange('compressionLevel', e.target.value as 'extreme' | 'recommended' | 'less')}
+                                                className="w-full px-4 py-2 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-surface-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                            >
+                                                <option value="extreme">Extreme (Smallest)</option>
+                                                <option value="recommended">Recommended (Balanced)</option>
+                                                <option value="less">Less (Best Quality)</option>
+                                            </select>
+                                        </div>
 
-                                {/* Compression Level */}
-                                <div>
-                                    <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
-                                        Default Compression
-                                    </label>
-                                    <select
-                                        value={localSettings.compressionLevel}
-                                        onChange={(e) => handleSettingChange('compressionLevel', e.target.value as 'extreme' | 'recommended' | 'less')}
-                                        className="w-full px-4 py-2 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-surface-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                    >
-                                        <option value="extreme">Extreme (Smallest)</option>
-                                        <option value="recommended">Recommended (Balanced)</option>
-                                        <option value="less">Less (Best Quality)</option>
-                                    </select>
-                                </div>
-
-                                {/* Save Button */}
-                                {hasChanges && (
-                                    <Button
-                                        onClick={handleSave}
-                                        className="w-full"
-                                    >
-                                        <Save className="w-4 h-4 mr-2" />
-                                        Save Changes
-                                    </Button>
+                                        {/* Save Button */}
+                                        {hasChanges && (
+                                            <Button
+                                                onClick={handleSave}
+                                                className="w-full"
+                                            >
+                                                <Save className="w-4 h-4 mr-2" />
+                                                Save Changes
+                                            </Button>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>
