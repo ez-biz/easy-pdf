@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
-import { motion } from "framer-motion";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { motion, useDragControls } from "framer-motion";
 import { Type, Trash2 } from "lucide-react";
 import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
@@ -14,32 +14,171 @@ import { downloadBlob, createPdfBlob } from "@/lib/utils";
 import { useToast } from "@/contexts/ToastContext";
 import { useAppStore } from "@/store/useAppStore";
 
+// Draggable Text Box Component
+interface DraggableTextBoxProps {
+    box: TextBox;
+    isSelected: boolean;
+    containerRef: React.RefObject<HTMLDivElement | null>;
+    onSelect: () => void;
+    onUpdate: (id: string, updates: Partial<TextBox>) => void;
+    onDelete: (id: string) => void;
+}
+
+function DraggableTextBox({
+    box,
+    isSelected,
+    containerRef,
+    onSelect,
+    onUpdate,
+    onDelete,
+}: DraggableTextBoxProps) {
+    return (
+        <motion.div
+            drag
+            dragMomentum={false}
+            dragConstraints={containerRef}
+            onDragEnd={(_, info) => {
+                if (!containerRef.current) return;
+                const rect = containerRef.current.getBoundingClientRect();
+
+                // Calculate new position as percentage
+                // box.x/y are percentages. info.offset is pixel delta.
+                const deltaXPercent = (info.offset.x / rect.width) * 100;
+                const deltaYPercent = (info.offset.y / rect.height) * 100;
+
+                onUpdate(box.id, {
+                    x: Math.max(0, Math.min(100, box.x + deltaXPercent)),
+                    y: Math.max(0, Math.min(100, box.y + deltaYPercent)),
+                });
+            }}
+            style={{
+                position: "absolute",
+                left: `${box.x}%`,
+                top: `${box.y}%`,
+                touchAction: "none",
+            }}
+            className="absolute"
+            onClick={(e) => {
+                e.stopPropagation();
+                onSelect();
+            }}
+        >
+            <div
+                className={`relative group ${isSelected
+                    ? "ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-surface-800"
+                    : "hover:ring-1 hover:ring-primary-300"
+                    } rounded p-1 cursor-move transition-shadow`}
+            >
+                {/* Text Display */}
+                <div
+                    style={{
+                        fontSize: `${box.fontSize}px`,
+                        fontFamily: box.fontFamily,
+                        color: box.color,
+                        transform: `rotate(${box.rotation}deg)`,
+                        textAlign: box.align,
+                        whiteSpace: "nowrap",
+                        userSelect: "none",
+                    }}
+                >
+                    {box.text}
+                </div>
+
+                {/* Controls (visible when selected) */}
+                {isSelected && (
+                    <>
+                        {/* Delete Button (Top Right) */}
+                        <div
+                            className="absolute -top-3 -right-3 p-1 bg-red-500 text-white rounded-full cursor-pointer shadow-sm hover:bg-red-600"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(box.id);
+                            }}
+                        >
+                            <Trash2 className="w-3 h-3" />
+                        </div>
+
+                        {/* Resize Handle (Bottom Right) */}
+                        <div
+                            className="absolute -bottom-2 -right-2 w-4 h-4 bg-primary-500 border-2 border-white rounded-full cursor-se-resize shadow-sm"
+                            draggable={true}
+                            onDragStart={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }}
+                            onMouseDown={(e) => {
+                                e.stopPropagation();
+                                const startY = e.clientY;
+                                const startSize = box.fontSize;
+
+                                const handleMouseMove = (moveEvent: MouseEvent) => {
+                                    const delta = startY - moveEvent.clientY;
+                                    // Dragging up increases size, down decreases
+                                    const newSize = Math.max(8, Math.min(72, startSize + delta));
+                                    onUpdate(box.id, { fontSize: newSize });
+                                };
+
+                                const handleMouseUp = () => {
+                                    window.removeEventListener("mousemove", handleMouseMove);
+                                    window.removeEventListener("mouseup", handleMouseUp);
+                                };
+
+                                window.addEventListener("mousemove", handleMouseMove);
+                                window.addEventListener("mouseup", handleMouseUp);
+                            }}
+                        />
+                    </>
+                )}
+            </div>
+        </motion.div>
+    );
+}
+
 export default function AddTextPage() {
     const [files, setFiles] = useState<FileWithPreview[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [pageCount, setPageCount] = useState(0);
     const [currentPage, setCurrentPage] = useState(0);
     const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
-    const [selectedBox, setSelectedBox] = useState<string | null>(null);
+    const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
     const [result, setResult] = useState<Blob | null>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
     const toast = useToast();
     const { addActivity, incrementProcessed } = useAppStore();
 
-    // Text editor state
-    const [editText, setEditText] = useState("");
-    const [editFontSize, setEditFontSize] = useState(16);
-    const [editFontFamily, setEditFontFamily] = useState<TextBox["fontFamily"]>("Helvetica");
-    const [editColor, setEditColor] = useState("#000000");
-    const [editAlign, setEditAlign] = useState<TextBox["align"]>("left");
-    const [editRotation, setEditRotation] = useState<TextBox["rotation"]>(0);
+    // Editor state
+    const [editorState, setEditorState] = useState({
+        text: "",
+        fontSize: 16,
+        fontFamily: "Helvetica" as TextBox["fontFamily"],
+        color: "#000000",
+        align: "left" as TextBox["align"],
+        rotation: 0 as 0 | 90 | 180 | 270,
+    });
+
+    // Update editor when selection changes
+    useEffect(() => {
+        if (selectedBoxId) {
+            const box = textBoxes.find((b) => b.id === selectedBoxId);
+            if (box) {
+                setEditorState({
+                    text: box.text,
+                    fontSize: box.fontSize,
+                    fontFamily: box.fontFamily,
+                    color: box.color,
+                    align: box.align,
+                    rotation: box.rotation,
+                });
+            }
+        }
+    }, [selectedBoxId, textBoxes]);
 
     const handleFilesChange = useCallback(
         async (newFiles: FileWithPreview[]) => {
             setFiles(newFiles);
             setResult(null);
             setTextBoxes([]);
-            setSelectedBox(null);
+            setSelectedBoxId(null);
             setCurrentPage(0);
 
             if (newFiles.length > 0) {
@@ -55,7 +194,11 @@ export default function AddTextPage() {
     );
 
     const handleCanvasClick = (event: React.MouseEvent<HTMLDivElement>) => {
-        if (!canvasRef.current) return;
+        if (!canvasRef.current || selectedBoxId) {
+            // If something is selected, deselect it on background click
+            setSelectedBoxId(null);
+            return;
+        }
 
         const rect = canvasRef.current.getBoundingClientRect();
         const x = ((event.clientX - rect.left) / rect.width) * 100;
@@ -63,114 +206,71 @@ export default function AddTextPage() {
 
         const newTextBox: TextBox = {
             id: Math.random().toString(36).substring(2, 9),
-            text: editText || "New Text",
+            text: "New Text",
             x,
             y,
             page: currentPage,
-            fontSize: editFontSize,
-            fontFamily: editFontFamily,
-            color: editColor,
-            rotation: editRotation,
-            align: editAlign,
+            fontSize: 16,
+            fontFamily: "Helvetica",
+            color: "#000000",
+            rotation: 0,
+            align: "left",
         };
 
         setTextBoxes((prev) => [...prev, newTextBox]);
-        setSelectedBox(newTextBox.id);
-        toast.success("Text box added! Click 'Apply' when ready.");
+        setSelectedBoxId(newTextBox.id);
+        toast.success("Text box added");
+    };
+
+    const updateBox = (id: string, updates: Partial<TextBox>) => {
+        setTextBoxes((prev) =>
+            prev.map((box) => (box.id === id ? { ...box, ...updates } : box))
+        );
+    };
+
+    // Live update from editor
+    const handleEditorChange = (updates: Partial<typeof editorState>) => {
+        setEditorState((prev) => ({ ...prev, ...updates }));
+        if (selectedBoxId) {
+            updateBox(selectedBoxId, updates);
+        }
     };
 
     const handleDeleteBox = (id: string) => {
         setTextBoxes((prev) => prev.filter((box) => box.id !== id));
-        if (selectedBox === id) {
-            setSelectedBox(null);
-        }
-        toast.success("Text box removed");
-    };
-
-    const handleUpdateBox = () => {
-        if (!selectedBox) return;
-
-        setTextBoxes((prev) =>
-            prev.map((box) =>
-                box.id === selectedBox
-                    ? {
-                        ...box,
-                        text: editText,
-                        fontSize: editFontSize,
-                        fontFamily: editFontFamily,
-                        color: editColor,
-                        align: editAlign,
-                        rotation: editRotation,
-                    }
-                    : box
-            )
-        );
-        toast.success("Text box updated");
+        if (selectedBoxId === id) setSelectedBoxId(null);
     };
 
     const handleApply = async () => {
-        if (files.length === 0) {
-            toast.warning("Please upload a PDF file");
-            return;
-        }
-
-        if (textBoxes.length === 0) {
-            toast.warning("Please add at least one text box");
-            return;
-        }
-
+        if (files.length === 0 || textBoxes.length === 0) return;
         setIsProcessing(true);
-
         try {
             const response = await addTextToPDF(files[0].file, textBoxes);
-
             if (response.success && response.data) {
-                const blob = createPdfBlob(response.data);
-                setResult(blob);
-                toast.success("Text added successfully!");
-                addActivity({
-                    toolName: "Add Text to PDF",
-                    fileName: files[0].name,
-                });
+                setResult(createPdfBlob(response.data));
+                toast.success("PDF updated successfully!");
+                addActivity({ toolName: "Add Text to PDF", fileName: files[0].name });
                 incrementProcessed();
             } else {
-                toast.error(response.error || "Failed to add text to PDF");
+                toast.error(response.error || "Failed");
             }
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "An error occurred");
+        } catch {
+            toast.error("An error occurred");
         } finally {
             setIsProcessing(false);
         }
     };
 
-    const handleDownload = () => {
-        if (result) {
-            downloadBlob(result, "text-added.pdf");
-            toast.success("PDF downloaded successfully!");
-        }
-    };
-
-    const handleReset = () => {
-        setFiles([]);
-        setResult(null);
-        setTextBoxes([]);
-        setSelectedBox(null);
-        setCurrentPage(0);
-        setPageCount(0);
-    };
-
-    // Get current page text boxes
     const currentPageTextBoxes = textBoxes.filter((box) => box.page === currentPage);
 
     return (
         <ToolLayout
             title="Add Text to PDF"
-            description="Insert text boxes anywhere on your PDF"
+            description="Insert, position, and customize text on your PDF"
             icon={Type}
             color="from-blue-500 to-blue-600"
         >
             <div className="space-y-6">
-                {/* File Upload */}
                 {!result && (
                     <FileUploader
                         accept={{ "application/pdf": [".pdf"] }}
@@ -180,12 +280,10 @@ export default function AddTextPage() {
                     />
                 )}
 
-                {/* Main Editor */}
                 {files.length > 0 && !result && (
                     <div className="grid lg:grid-cols-3 gap-6">
-                        {/* Left: PDF Preview Canvas */}
+                        {/* Canvas Area */}
                         <div className="lg:col-span-2 space-y-4">
-                            {/* Page Navigator */}
                             {pageCount > 1 && (
                                 <div className="flex items-center justify-between p-4 bg-surface-50 dark:bg-surface-800 rounded-xl">
                                     <Button
@@ -196,13 +294,11 @@ export default function AddTextPage() {
                                     >
                                         Previous
                                     </Button>
-                                    <span className="text-sm font-medium text-surface-700 dark:text-surface-300">
+                                    <span className="text-sm font-medium">
                                         Page {currentPage + 1} of {pageCount}
                                     </span>
                                     <Button
-                                        onClick={() =>
-                                            setCurrentPage((p) => Math.min(pageCount - 1, p + 1))
-                                        }
+                                        onClick={() => setCurrentPage((p) => Math.min(pageCount - 1, p + 1))}
                                         disabled={currentPage === pageCount - 1}
                                         variant="outline"
                                         size="sm"
@@ -212,277 +308,156 @@ export default function AddTextPage() {
                                 </div>
                             )}
 
-                            {/* Canvas Area */}
                             <div className="relative">
                                 <div
                                     ref={canvasRef}
                                     onClick={handleCanvasClick}
-                                    className="relative w-full bg-white dark:bg-surface-700 border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl cursor-crosshair overflow-hidden"
+                                    className="relative w-full bg-white dark:bg-surface-700 border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl overflow-hidden touch-none"
                                 >
-                                    {/* PDF Page Rendering */}
                                     <PDFPageRenderer
                                         file={files[0].file}
                                         pageNumber={currentPage + 1}
-                                        className="pointer-events-none"
+                                        className="pointer-events-none select-none"
                                     />
 
-                                    {/* Text Boxes Preview */}
                                     {currentPageTextBoxes.map((box) => (
-                                        <div
+                                        <DraggableTextBox
                                             key={box.id}
-                                            style={{
-                                                position: "absolute",
-                                                left: `${box.x}%`,
-                                                top: `${box.y}%`,
-                                                fontSize: `${box.fontSize}px`,
-                                                fontFamily: box.fontFamily,
-                                                color: box.color,
-                                                transform: `rotate(${box.rotation}deg)`,
-                                                textAlign: box.align,
-                                                cursor: "pointer",
-                                                border:
-                                                    selectedBox === box.id
-                                                        ? "2px dashed #3b82f6"
-                                                        : "1px solid transparent",
-                                                padding: "4px",
-                                                whiteSpace: "nowrap",
-                                            }}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedBox(box.id);
-                                                setEditText(box.text);
-                                                setEditFontSize(box.fontSize);
-                                                setEditFontFamily(box.fontFamily);
-                                                setEditColor(box.color);
-                                                setEditAlign(box.align);
-                                                setEditRotation(box.rotation);
-                                            }}
-                                        >
-                                            {box.text}
-                                        </div>
+                                            box={box}
+                                            isSelected={selectedBoxId === box.id}
+                                            containerRef={canvasRef}
+                                            onSelect={() => setSelectedBoxId(box.id)}
+                                            onUpdate={updateBox}
+                                            onDelete={handleDeleteBox}
+                                        />
                                     ))}
+
+                                    {currentPageTextBoxes.length === 0 && (
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <p className="text-surface-400 font-medium">
+                                                Click anywhere to add text
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Right: Text Editor Panel */}
+                        {/* Editor Panel */}
                         <div className="space-y-6">
-                            {/* Text Content */}
-                            <div>
-                                <label
-                                    htmlFor="text"
-                                    className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2"
-                                >
-                                    Text Content
-                                </label>
-                                <textarea
-                                    id="text"
-                                    value={editText}
-                                    onChange={(e) => setEditText(e.target.value)}
-                                    className="w-full px-4 py-3 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                    placeholder="Enter text..."
-                                    rows={3}
-                                />
-                            </div>
+                            <div className="bg-surface-50 dark:bg-surface-800 p-6 rounded-xl space-y-6">
+                                <h3 className="font-semibold text-lg flex items-center gap-2">
+                                    <Type className="w-5 h-5" />
+                                    Text Properties
+                                </h3>
 
-                            {/* Font Family */}
-                            <div>
-                                <label
-                                    htmlFor="font"
-                                    className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2"
-                                >
-                                    Font Family
-                                </label>
-                                <select
-                                    id="font"
-                                    value={editFontFamily}
-                                    onChange={(e) =>
-                                        setEditFontFamily(e.target.value as TextBox["fontFamily"])
-                                    }
-                                    className="w-full px-4 py-3 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl text-surface-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                >
-                                    <option value="Helvetica">Helvetica</option>
-                                    <option value="Times-Roman">Times Roman</option>
-                                    <option value="Courier">Courier</option>
-                                </select>
-                            </div>
-
-                            {/* Font Size */}
-                            <div>
-                                <label
-                                    htmlFor="fontSize"
-                                    className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2"
-                                >
-                                    Font Size: {editFontSize}px
-                                </label>
-                                <input
-                                    type="range"
-                                    id="fontSize"
-                                    min="8"
-                                    max="72"
-                                    value={editFontSize}
-                                    onChange={(e) => setEditFontSize(Number(e.target.value))}
-                                    className="w-full"
-                                />
-                            </div>
-
-                            {/* Color */}
-                            <div>
-                                <label
-                                    htmlFor="color"
-                                    className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2"
-                                >
-                                    Text Color
-                                </label>
-                                <div className="flex gap-3">
-                                    <input
-                                        type="color"
-                                        id="color"
-                                        value={editColor}
-                                        onChange={(e) => setEditColor(e.target.value)}
-                                        className="w-16 h-12 rounded-lg cursor-pointer"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={editColor}
-                                        onChange={(e) => setEditColor(e.target.value)}
-                                        className="flex-1 px-4 py-3 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl text-surface-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                        placeholder="#000000"
+                                {/* Text Content */}
+                                <div>
+                                    <label className="block text-sm font-medium mb-2">Content</label>
+                                    <textarea
+                                        value={editorState.text}
+                                        onChange={(e) => handleEditorChange({ text: e.target.value })}
+                                        disabled={!selectedBoxId}
+                                        className="w-full px-4 py-2 rounded-lg border bg-white dark:bg-surface-700 dark:border-surface-600 disabled:opacity-50"
+                                        rows={3}
+                                        placeholder={selectedBoxId ? "Type text..." : "Select a text box"}
                                     />
                                 </div>
-                            </div>
 
-                            {/* Alignment */}
-                            <div>
-                                <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
-                                    Text Alignment
-                                </label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {(["left", "center", "right"] as const).map((align) => (
-                                        <button
-                                            key={align}
-                                            onClick={() => setEditAlign(align)}
-                                            className={`px-4 py-2 rounded-lg border transition-colors ${editAlign === align
-                                                ? "bg-primary-500 text-white border-primary-500"
-                                                : "bg-surface-50 dark:bg-surface-700 border-surface-200 dark:border-surface-600 text-surface-700 dark:text-surface-300"
-                                                }`}
+                                {/* Font Settings */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Font</label>
+                                        <select
+                                            value={editorState.fontFamily}
+                                            onChange={(e) => handleEditorChange({ fontFamily: e.target.value as TextBox["fontFamily"] })}
+                                            disabled={!selectedBoxId}
+                                            className="w-full px-3 py-2 rounded-lg border bg-white dark:bg-surface-700 dark:border-surface-600 disabled:opacity-50"
                                         >
-                                            {align.charAt(0).toUpperCase() + align.slice(1)}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Rotation */}
-                            <div>
-                                <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
-                                    Rotation
-                                </label>
-                                <div className="grid grid-cols-4 gap-2">
-                                    {([0, 90, 180, 270] as const).map((rotation) => (
-                                        <button
-                                            key={rotation}
-                                            onClick={() => setEditRotation(rotation)}
-                                            className={`px-4 py-2 rounded-lg border transition-colors ${editRotation === rotation
-                                                ? "bg-primary-500 text-white border-primary-500"
-                                                : "bg-surface-50 dark:bg-surface-700 border-surface-200 dark:border-surface-600 text-surface-700 dark:text-surface-300"
-                                                }`}
-                                        >
-                                            {rotation}°
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Update Button */}
-                            {selectedBox && (
-                                <Button
-                                    onClick={handleUpdateBox}
-                                    variant="outline"
-                                    className="w-full"
-                                >
-                                    Update Selected Text
-                                </Button>
-                            )}
-
-                            {/* Text Boxes List */}
-                            {textBoxes.length > 0 && (
-                                <div className="border-t border-surface-200 dark:border-surface-700 pt-6">
-                                    <h3 className="text-sm font-medium text-surface-700 dark:text-surface-300 mb-3">
-                                        Text Boxes ({textBoxes.length})
-                                    </h3>
-                                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                                        {textBoxes.map((box) => (
-                                            <div
-                                                key={box.id}
-                                                className={`flex items-center justify-between p-3 rounded-lg border ${selectedBox === box.id
-                                                    ? "bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800"
-                                                    : "bg-surface-50 dark:bg-surface-800 border-surface-200 dark:border-surface-700"
-                                                    }`}
-                                            >
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-surface-900 dark:text-white truncate">
-                                                        {box.text}
-                                                    </p>
-                                                    <p className="text-xs text-surface-500 dark:text-surface-400">
-                                                        Page {box.page + 1} • {box.fontSize}px
-                                                    </p>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleDeleteBox(box.id)}
-                                                    className="ml-2 p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        ))}
+                                            <option value="Helvetica">Helvetica</option>
+                                            <option value="Times-Roman">Times</option>
+                                            <option value="Courier">Courier</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Size</label>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="number"
+                                                value={editorState.fontSize}
+                                                onChange={(e) => handleEditorChange({ fontSize: Number(e.target.value) })}
+                                                disabled={!selectedBoxId}
+                                                className="w-full px-3 py-2 rounded-lg border bg-white dark:bg-surface-700 dark:border-surface-600 disabled:opacity-50"
+                                            />
+                                            <span className="text-sm text-surface-500">px</span>
+                                        </div>
                                     </div>
                                 </div>
-                            )}
 
-                            {/* Apply Button */}
+                                {/* Color & Align */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Color</label>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="color"
+                                                value={editorState.color}
+                                                onChange={(e) => handleEditorChange({ color: e.target.value })}
+                                                disabled={!selectedBoxId}
+                                                className="w-8 h-8 rounded cursor-pointer disabled:opacity-50"
+                                            />
+                                            <span className="text-sm font-mono">{editorState.color}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Align</label>
+                                        <div className="flex rounded-lg border bg-white dark:bg-surface-700 overflow-hidden">
+                                            {(["left", "center", "right"] as const).map((align) => (
+                                                <button
+                                                    key={align}
+                                                    onClick={() => handleEditorChange({ align })}
+                                                    disabled={!selectedBoxId}
+                                                    className={`flex-1 py-2 text-xs font-medium transition-colors ${editorState.align === align
+                                                        ? "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                                                        : "hover:bg-surface-100 dark:hover:bg-surface-600"
+                                                        }`}
+                                                >
+                                                    {align.charAt(0).toUpperCase()}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p className="text-xs text-surface-500">
+                                    Tip: Drag text to move. Drag corner handle to resize.
+                                </p>
+                            </div>
+
                             <Button
                                 onClick={handleApply}
                                 disabled={isProcessing || textBoxes.length === 0}
                                 size="lg"
                                 className="w-full"
                             >
-                                {isProcessing ? "Processing..." : "Apply Text to PDF"}
+                                {isProcessing ? "Processing..." : "Download Updated PDF"}
                             </Button>
                         </div>
                     </div>
                 )}
 
-                {/* Success State */}
+                {/* Success Screen */}
                 {result && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="text-center space-y-6"
-                    >
+                    <div className="text-center space-y-6">
                         <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto">
                             <Type className="w-10 h-10 text-green-600 dark:text-green-400" />
                         </div>
-                        <div>
-                            <h3 className="text-xl font-semibold text-surface-900 dark:text-white mb-2">
-                                Text Added Successfully!
-                            </h3>
-                            <p className="text-surface-600 dark:text-surface-400">
-                                Your PDF has been updated with {textBoxes.length} text box
-                                {textBoxes.length !== 1 ? "es" : ""}.
-                            </p>
+                        <h3 className="text-xl font-semibold">Success!</h3>
+                        <div className="flex justify-center gap-4">
+                            <DownloadButton onClick={() => downloadBlob(result, "text-added.pdf")} filename="text-added.pdf" isReady={true} />
+                            <Button onClick={() => { setResult(null); setTextBoxes([]); }} variant="outline">Start Over</Button>
                         </div>
-                        <div className="flex gap-4 justify-center">
-                            <DownloadButton
-                                onClick={handleDownload}
-                                filename="text-added.pdf"
-                                isReady={true}
-                            />
-                            <Button onClick={handleReset} variant="outline" size="lg">
-                                Add Text to Another PDF
-                            </Button>
-                        </div>
-                    </motion.div>
+                    </div>
                 )}
             </div>
         </ToolLayout>

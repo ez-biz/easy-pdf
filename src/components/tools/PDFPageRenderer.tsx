@@ -25,6 +25,7 @@ export function PDFPageRenderer({
     className,
 }: PDFPageRendererProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -35,6 +36,15 @@ export function PDFPageRenderer({
             if (!canvasRef.current) return;
 
             try {
+                // Cancel any pending render task
+                if (renderTaskRef.current) {
+                    try {
+                        renderTaskRef.current.cancel();
+                    } catch {
+                        // Ignore cancel errors
+                    }
+                }
+
                 setIsLoading(true);
                 setError(null);
 
@@ -43,31 +53,46 @@ export function PDFPageRenderer({
                 const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
                 const pdf = await loadingTask.promise;
 
+                if (!isMounted) return;
+
                 // Get page
                 const page = await pdf.getPage(pageNumber);
                 const viewport = page.getViewport({ scale: 1.5 });
+
+                if (!isMounted) return;
 
                 // Prepare canvas
                 const canvas = canvasRef.current;
                 const context = canvas.getContext("2d");
                 if (!context) return;
 
+                // Clear canvas before new render
+                context.clearRect(0, 0, canvas.width, canvas.height);
+
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
 
                 // Render PDF page
-                await page.render({
+                const renderTask = page.render({
                     canvasContext: context,
                     viewport: viewport,
-                }).promise;
+                });
+
+                renderTaskRef.current = renderTask;
+                await renderTask.promise;
 
                 if (isMounted) {
                     setIsLoading(false);
                     onPageRendered?.(viewport.width, viewport.height);
                 }
-            } catch (err) {
+            } catch (err: unknown) {
+                const error = err as { name?: string; message?: string };
+                if (error?.name === 'RenderingCancelledException') {
+                    // Ignore cancelled renders
+                    return;
+                }
                 if (isMounted) {
-                    setError(err instanceof Error ? err.message : "Failed to render PDF");
+                    setError(error.message || "Failed to render PDF");
                     setIsLoading(false);
                 }
             }
@@ -77,6 +102,13 @@ export function PDFPageRenderer({
 
         return () => {
             isMounted = false;
+            if (renderTaskRef.current) {
+                try {
+                    renderTaskRef.current.cancel();
+                } catch {
+                    // Ignore
+                }
+            }
         };
     }, [file, pageNumber, onPageRendered]);
 
