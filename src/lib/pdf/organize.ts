@@ -1,4 +1,4 @@
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, degrees } from "pdf-lib";
 
 export interface OrganizeResult {
     success: boolean;
@@ -125,4 +125,49 @@ export async function getPageCount(pdfFile: File): Promise<number> {
     const arrayBuffer = await pdfFile.arrayBuffer();
     const pdfDoc = await PDFDocument.load(arrayBuffer);
     return pdfDoc.getPageCount();
+}
+
+export interface PageOperation {
+    originalIndex: number;
+    rotation: number; // 0, 90, 180, 270 (additional rotation)
+}
+
+/**
+ * Reorder, rotate, and select pages to create a new PDF
+ */
+export async function organizePDF(
+    pdfFile: File,
+    pageOrder: PageOperation[]
+): Promise<OrganizeResult> {
+    try {
+        const arrayBuffer = await pdfFile.arrayBuffer();
+        const sourcePdf = await PDFDocument.load(arrayBuffer);
+
+        const newPdf = await PDFDocument.create();
+
+        // Copy pages based on the requested order
+        const indicesToCopy = pageOrder.map(p => p.originalIndex);
+        const copiedPages = await newPdf.copyPages(sourcePdf, indicesToCopy);
+
+        // Add pages to new PDF with applied rotation
+        copiedPages.forEach((page, i) => {
+            const operation = pageOrder[i];
+            const currentRotation = page.getRotation().angle;
+            const newRotation = (currentRotation + operation.rotation) % 360;
+            page.setRotation(degrees(newRotation));
+            newPdf.addPage(page);
+        });
+
+        const pdfBytes = await newPdf.save();
+        return {
+            success: true,
+            data: pdfBytes,
+            pageCount: newPdf.getPageCount(),
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to organize PDF",
+        };
+    }
 }

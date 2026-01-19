@@ -16,6 +16,7 @@ interface PDFPageRendererProps {
     pageNumber: number; // 1-indexed
     onPageRendered?: (width: number, height: number) => void;
     className?: string;
+    scale?: number;
 }
 
 export function PDFPageRenderer({
@@ -23,6 +24,7 @@ export function PDFPageRenderer({
     pageNumber,
     onPageRendered,
     className,
+    scale = 1.5,
 }: PDFPageRendererProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
@@ -57,7 +59,7 @@ export function PDFPageRenderer({
 
                 // Get page
                 const page = await pdf.getPage(pageNumber);
-                const viewport = page.getViewport({ scale: 1.5 });
+                const viewport = page.getViewport({ scale });
 
                 if (!isMounted) return;
 
@@ -110,7 +112,7 @@ export function PDFPageRenderer({
                 }
             }
         };
-    }, [file, pageNumber, onPageRendered]);
+    }, [file, pageNumber, onPageRendered, scale]);
 
     return (
         <div className={className}>

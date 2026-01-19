@@ -65,7 +65,6 @@ export const TOOLS: Tool[] = [
         icon: "LayoutGrid",
         category: "organize",
         color: "from-orange-500 to-orange-600",
-        comingSoon: true,
     },
 
     // Convert
