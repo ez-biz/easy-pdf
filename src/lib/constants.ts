@@ -175,6 +175,15 @@ export const TOOLS: Tool[] = [
         color: "from-purple-500 to-purple-600",
     },
     {
+        id: "add-text",
+        name: "Add Text to PDF",
+        description: "Insert text boxes anywhere on your PDF",
+        href: "/add-text",
+        icon: "Type",
+        category: "edit",
+        color: "from-blue-500 to-blue-600",
+    },
+    {
         id: "sign-pdf",
         name: "Sign PDF",
         description: "Add your signature to PDF documents",
