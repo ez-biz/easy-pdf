@@ -71,8 +71,8 @@ function DraggableImageBox({
         >
             <div
                 className={`relative group h-full ${isSelected
-                    ? "ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-surface-800"
-                    : "hover:ring-1 hover:ring-primary-300"
+                        ? "ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-surface-800"
+                        : "hover:ring-1 hover:ring-primary-300"
                     } rounded cursor-move transition-shadow`}
                 onPointerDown={(e) => controls.start(e)}
             >
@@ -241,8 +241,9 @@ export default function AddImagePage() {
         if (selectedId === id) setSelectedId(null);
     };
 
+    // Stable callback to prevent PDF re-render
     const handlePageRendered = useCallback(() => {
-        // Maybe recalculate overlay heights if container resized?
+        // No-op
     }, []);
 
     const handleDownload = async () => {
@@ -269,6 +270,15 @@ export default function AddImagePage() {
         }
     };
 
+    const handleStartOver = () => {
+        setFiles([]);
+        setDownloadUrl(null);
+        setOverlays([]);
+        setImageUrls({});
+        setAspectRatios({});
+        setSelectedId(null);
+    };
+
     return (
         <ToolLayout
             title="Add Image to PDF"
@@ -277,14 +287,17 @@ export default function AddImagePage() {
             color="from-green-500 to-green-600"
         >
             <div className="space-y-6">
-                <FileUploader
-                    files={files}
-                    onFilesChange={handleFilesSelected}
-                    accept={{ "application/pdf": [".pdf"] }}
-                    maxSize={10 * 1024 * 1024}
-                />
+                {!downloadUrl && (
+                    <FileUploader
+                        files={files}
+                        onFilesChange={handleFilesSelected}
+                        accept={{ "application/pdf": [".pdf"] }}
+                        maxSize={10 * 1024 * 1024}
+                        maxFiles={1}
+                    />
+                )}
 
-                {files.length > 0 && (
+                {files.length > 0 && !downloadUrl && (
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                         {/* Main Canvas Area */}
                         <div className="lg:col-span-3 space-y-4">
@@ -374,8 +387,8 @@ export default function AddImagePage() {
                                             <div
                                                 key={overlay.id}
                                                 className={`flex items-center gap-2 p-2 rounded text-sm cursor-pointer border ${selectedId === overlay.id
-                                                    ? "bg-primary-50 border-primary-200 dark:bg-primary-900/20 dark:border-primary-800"
-                                                    : "hover:bg-surface-50 dark:hover:bg-surface-700 border-transparent"
+                                                        ? "bg-primary-50 border-primary-200 dark:bg-primary-900/20 dark:border-primary-800"
+                                                        : "hover:bg-surface-50 dark:hover:bg-surface-700 border-transparent"
                                                     }`}
                                                 onClick={() => {
                                                     setCurrentPage(overlay.page + 1);
@@ -413,24 +426,32 @@ export default function AddImagePage() {
                                 >
                                     {isProcessing ? "Processing..." : "Download PDF"}
                                 </Button>
-
-                                {downloadUrl && (
-                                    <div className="mt-4 pt-4 border-t border-surface-100 dark:border-surface-700">
-                                        <DownloadButton
-                                            isReady={true}
-                                            filename={`images-added-${files[0].name}`}
-                                            onClick={() => {
-                                                const a = document.createElement('a');
-                                                a.href = downloadUrl;
-                                                a.download = `images-added-${files[0].name}`;
-                                                document.body.appendChild(a);
-                                                a.click();
-                                                document.body.removeChild(a);
-                                            }}
-                                        />
-                                    </div>
-                                )}
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Success Screen */}
+                {downloadUrl && (
+                    <div className="text-center space-y-6">
+                        <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto">
+                            <ImageIcon className="w-10 h-10 text-green-600 dark:text-green-400" />
+                        </div>
+                        <h3 className="text-xl font-semibold">Success!</h3>
+                        <div className="flex justify-center gap-4">
+                            <DownloadButton
+                                isReady={true}
+                                filename={`images-added-${files[0]?.name || 'document.pdf'}`}
+                                onClick={() => {
+                                    const a = document.createElement('a');
+                                    a.href = downloadUrl;
+                                    a.download = `images-added-${files[0]?.name || 'document.pdf'}`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                }}
+                            />
+                            <Button onClick={handleStartOver} variant="outline">Start Over</Button>
                         </div>
                     </div>
                 )}
