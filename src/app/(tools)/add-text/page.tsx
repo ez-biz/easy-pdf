@@ -322,7 +322,7 @@ export default function AddTextPage() {
 
                                     {currentPageTextBoxes.map((box) => (
                                         <DraggableTextBox
-                                            key={box.id}
+                                            key={`${box.id}-${box.x.toFixed(2)}-${box.y.toFixed(2)}`}
                                             box={box}
                                             isSelected={selectedBoxId === box.id}
                                             containerRef={canvasRef}
