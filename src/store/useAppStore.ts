@@ -24,6 +24,7 @@ interface AppState {
     // Recent Activity
     recentActivity: RecentActivity[];
     addActivity: (activity: Omit<RecentActivity, 'id' | 'timestamp'>) => void;
+    removeActivity: (id: string) => void;
     clearActivity: () => void;
 
     // Stats
@@ -75,6 +76,11 @@ export const useAppStore = create<AppState>()(
                         },
                         ...state.recentActivity.slice(0, 9), // Keep last 10
                     ],
+                })),
+
+            removeActivity: (id) =>
+                set((state) => ({
+                    recentActivity: state.recentActivity.filter(item => item.id !== id),
                 })),
 
             clearActivity: () => set({ recentActivity: [] }),
