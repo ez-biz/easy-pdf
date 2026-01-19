@@ -215,7 +215,7 @@ export default function SettingsPage() {
                                         <span className="font-medium text-surface-900 dark:text-white block">
                                             Theme
                                         </span>
-                                        <span className="text-sm text-surface-500 dark:text-surface-400">
+                                        <span className="text-sm font-medium text-surface-700 dark:text-surface-300">
                                             {settings.isDarkMode ? 'Dark Mode' : 'Light Mode'}
                                         </span>
                                     </div>
