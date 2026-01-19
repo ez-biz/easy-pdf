@@ -112,8 +112,9 @@ function DraggableTextBox({
                                 const startSize = box.fontSize;
 
                                 const handleMouseMove = (moveEvent: MouseEvent) => {
-                                    const delta = startY - moveEvent.clientY;
-                                    // Dragging up increases size, down decreases
+                                    const delta = moveEvent.clientY - startY;
+                                    // Dragging down (increasing Y) increases size
+                                    // Dragging up (decreasing Y) decreases size
                                     const newSize = Math.max(8, Math.min(72, startSize + delta));
                                     onUpdate(box.id, { fontSize: newSize });
                                 };
