@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, useDragControls } from "framer-motion";
 import { Image as ImageIcon, Trash2, Plus } from "lucide-react";
 import { ToolLayout } from "@/components/layout/ToolLayout";
@@ -241,6 +241,10 @@ export default function AddImagePage() {
         if (selectedId === id) setSelectedId(null);
     };
 
+    const handlePageRendered = useCallback(() => {
+        // Maybe recalculate overlay heights if container resized?
+    }, []);
+
     const handleDownload = async () => {
         if (!files.length) return;
 
@@ -331,9 +335,7 @@ export default function AddImagePage() {
                                     file={files[0].file}
                                     pageNumber={currentPage}
                                     className="w-full"
-                                    onPageRendered={() => {
-                                        // Maybe recalculate overlay heights if container resized?
-                                    }}
+                                    onPageRendered={handlePageRendered}
                                 />
 
                                 {/* Overlays for current page */}
