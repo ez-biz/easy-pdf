@@ -152,7 +152,7 @@ export default function AddTextPage() {
     const [result, setResult] = useState<Blob | null>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
     const toast = useToast();
-    const { addActivity, incrementProcessed, incrementToolUsage } = useAppStore();
+    const { addActivity, incrementProcessed } = useAppStore();
 
     // Editor state
     const [editorState, setEditorState] = useState({
@@ -268,8 +268,6 @@ export default function AddTextPage() {
                 toast.success("PDF updated successfully!");
                 addActivity({ toolName: "Add Text to PDF", fileName: files[0].name });
                 incrementProcessed();
-                // Track usage
-                incrementToolUsage("add-text");
             } else {
                 toast.error(response.error || "Failed");
             }
