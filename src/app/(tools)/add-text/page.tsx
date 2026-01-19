@@ -6,6 +6,7 @@ import { Type, Trash2 } from "lucide-react";
 import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
+import { PDFPageRenderer } from "@/components/tools/PDFPageRenderer";
 import { Button } from "@/components/ui/Button";
 import { FileWithPreview } from "@/types/tools";
 import { addTextToPDF, generatePagePreviews, TextBox } from "@/lib/pdf/addText";
@@ -216,20 +217,14 @@ export default function AddTextPage() {
                                 <div
                                     ref={canvasRef}
                                     onClick={handleCanvasClick}
-                                    className="relative w-full aspect-[8.5/11] bg-white dark:bg-surface-700 border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl cursor-crosshair overflow-hidden"
+                                    className="relative w-full bg-white dark:bg-surface-700 border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl cursor-crosshair overflow-hidden"
                                 >
-                                    {/* Placeholder */}
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <div className="text-center">
-                                            <Type className="w-16 h-16 text-surface-400 dark:text-surface-500 mx-auto mb-4" />
-                                            <p className="text-surface-600 dark:text-surface-400 font-medium">
-                                                Click anywhere to add text
-                                            </p>
-                                            <p className="text-sm text-surface-500 dark:text-surface-500 mt-2">
-                                                Page {currentPage + 1}
-                                            </p>
-                                        </div>
-                                    </div>
+                                    {/* PDF Page Rendering */}
+                                    <PDFPageRenderer
+                                        file={files[0].file}
+                                        pageNumber={currentPage + 1}
+                                        className="pointer-events-none"
+                                    />
 
                                     {/* Text Boxes Preview */}
                                     {currentPageTextBoxes.map((box) => (
