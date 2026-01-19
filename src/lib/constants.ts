@@ -184,6 +184,16 @@ export const TOOLS: Tool[] = [
         color: "from-blue-500 to-blue-600",
     },
     {
+        id: "add-image",
+        name: "Add Image to PDF",
+        description: "Add image overlays to your PDF documents",
+        href: "/add-image",
+        icon: "Image",
+        category: "edit",
+
+        color: "from-green-500 to-green-600",
+    },
+    {
         id: "sign-pdf",
         name: "Sign PDF",
         description: "Add your signature to PDF documents",
