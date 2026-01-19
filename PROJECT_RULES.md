@@ -11,3 +11,5 @@
    - Merge into `main` only after verified.
 
 3. **Verification**: Always verify the build (`npm run build`) and functionality before merging.
+
+4. **Documentation**: Whenever a feature is ready, update the `README.md` document as well.
