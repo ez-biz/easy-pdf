@@ -11,6 +11,9 @@ export interface TextBox {
     color: string; // Hex color
     rotation: 0 | 90 | 180 | 270;
     align: "left" | "center" | "right";
+    isBold?: boolean;
+    isItalic?: boolean;
+    isUnderline?: boolean;
 }
 
 /**
@@ -28,21 +31,36 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 }
 
 /**
- * Get StandardFont from font family name
+ * Get StandardFont from font family name and styles
  */
 async function getFont(
     pdfDoc: PDFDocument,
-    fontFamily: TextBox["fontFamily"]
+    fontFamily: TextBox["fontFamily"],
+    isBold?: boolean,
+    isItalic?: boolean
 ): Promise<PDFFont> {
-    switch (fontFamily) {
-        case "Times-Roman":
-            return pdfDoc.embedFont(StandardFonts.TimesRoman);
-        case "Courier":
-            return pdfDoc.embedFont(StandardFonts.Courier);
-        case "Helvetica":
-        default:
-            return pdfDoc.embedFont(StandardFonts.Helvetica);
+    if (fontFamily === "Helvetica") {
+        if (isBold && isItalic) return pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique);
+        if (isBold) return pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        if (isItalic) return pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+        return pdfDoc.embedFont(StandardFonts.Helvetica);
     }
+
+    if (fontFamily === "Times-Roman") {
+        if (isBold && isItalic) return pdfDoc.embedFont(StandardFonts.TimesRomanBoldItalic);
+        if (isBold) return pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+        if (isItalic) return pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+        return pdfDoc.embedFont(StandardFonts.TimesRoman);
+    }
+
+    if (fontFamily === "Courier") {
+        if (isBold && isItalic) return pdfDoc.embedFont(StandardFonts.CourierBoldOblique);
+        if (isBold) return pdfDoc.embedFont(StandardFonts.CourierBold);
+        if (isItalic) return pdfDoc.embedFont(StandardFonts.CourierOblique);
+        return pdfDoc.embedFont(StandardFonts.Courier);
+    }
+
+    return pdfDoc.embedFont(StandardFonts.Helvetica);
 }
 
 /**
@@ -83,11 +101,12 @@ export async function addTextToPDF(
                 // PDF coordinates are from bottom-left, UI is from top-left
                 const y = height - (box.y / 100) * height;
 
-                // Get font
-                const font = await getFont(pdfDoc, box.fontFamily);
+                // Get font with styles
+                const font = await getFont(pdfDoc, box.fontFamily, box.isBold, box.isItalic);
 
                 // Parse color
                 const color = hexToRgb(box.color);
+                const pdfColor = rgb(color.r, color.g, color.b);
 
                 // Calculate text width for alignment
                 const textWidth = font.widthOfTextAtSize(box.text, box.fontSize);
@@ -105,8 +124,21 @@ export async function addTextToPDF(
                     y: y,
                     size: box.fontSize,
                     font: font,
-                    color: rgb(color.r, color.g, color.b),
+                    color: pdfColor,
                 });
+
+                // Draw Underline if requested
+                if (box.isUnderline) {
+                    const underlineOffset = box.fontSize * 0.15;
+                    const underlineThickness = Math.max(1, box.fontSize * 0.05);
+
+                    page.drawLine({
+                        start: { x: textX, y: y - underlineOffset },
+                        end: { x: textX + textWidth, y: y - underlineOffset },
+                        thickness: underlineThickness,
+                        color: pdfColor,
+                    });
+                }
             }
         }
 

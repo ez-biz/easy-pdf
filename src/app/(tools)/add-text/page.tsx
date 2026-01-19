@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, useDragControls } from "framer-motion";
-import { Type, Trash2 } from "lucide-react";
+import { Type, Trash2, Bold, Italic, Underline } from "lucide-react";
 import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
@@ -79,6 +79,9 @@ function DraggableTextBox({
                 {/* Text Display */}
                 <div
                     style={{
+                        fontWeight: box.isBold ? "bold" : "normal",
+                        fontStyle: box.isItalic ? "italic" : "normal",
+                        textDecoration: box.isUnderline ? "underline" : "none",
                         fontSize: `${box.fontSize}px`,
                         fontFamily: box.fontFamily,
                         color: box.color,
@@ -159,6 +162,9 @@ export default function AddTextPage() {
         color: "#000000",
         align: "left" as TextBox["align"],
         rotation: 0 as 0 | 90 | 180 | 270,
+        isBold: false,
+        isItalic: false,
+        isUnderline: false,
     });
 
     // Update editor when selection changes
@@ -173,6 +179,9 @@ export default function AddTextPage() {
                     color: box.color,
                     align: box.align,
                     rotation: box.rotation,
+                    isBold: box.isBold || false,
+                    isItalic: box.isItalic || false,
+                    isUnderline: box.isUnderline || false,
                 });
             }
         }
@@ -220,6 +229,9 @@ export default function AddTextPage() {
             color: "#000000",
             rotation: 0,
             align: "left",
+            isBold: false,
+            isItalic: false,
+            isUnderline: false,
         };
 
         setTextBoxes((prev) => [...prev, newTextBox]);
@@ -395,6 +407,41 @@ export default function AddTextPage() {
                                                 className="w-full px-3 py-2 rounded-lg border bg-white dark:bg-surface-700 dark:border-surface-600 disabled:opacity-50"
                                             />
                                             <span className="text-sm text-surface-500">px</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Style</label>
+                                        <div className="flex rounded-lg border bg-white dark:bg-surface-700 overflow-hidden divide-x dark:divide-surface-600">
+                                            <button
+                                                onClick={() => handleEditorChange({ isBold: !editorState.isBold })}
+                                                disabled={!selectedBoxId}
+                                                className={`flex-1 py-2 flex items-center justify-center transition-colors ${editorState.isBold
+                                                    ? "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                                                    : "hover:bg-surface-100 dark:hover:bg-surface-600"
+                                                    }`}
+                                            >
+                                                <Bold className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleEditorChange({ isItalic: !editorState.isItalic })}
+                                                disabled={!selectedBoxId}
+                                                className={`flex-1 py-2 flex items-center justify-center transition-colors ${editorState.isItalic
+                                                    ? "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                                                    : "hover:bg-surface-100 dark:hover:bg-surface-600"
+                                                    }`}
+                                            >
+                                                <Italic className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleEditorChange({ isUnderline: !editorState.isUnderline })}
+                                                disabled={!selectedBoxId}
+                                                className={`flex-1 py-2 flex items-center justify-center transition-colors ${editorState.isUnderline
+                                                    ? "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                                                    : "hover:bg-surface-100 dark:hover:bg-surface-600"
+                                                    }`}
+                                            >
+                                                <Underline className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
