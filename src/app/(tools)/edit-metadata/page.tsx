@@ -31,6 +31,7 @@ export default function EditMetadataPage() {
         if (newFiles.length > 0) {
             // Read metadata from the uploaded PDF
             const response = await readMetadata(newFiles[0].file);
+
             if (response.success && response.metadata) {
                 setMetadata(response.metadata);
                 setEditedMetadata(response.metadata);
@@ -301,7 +302,11 @@ export default function EditMetadataPage() {
                             </p>
                         </div>
                         <div className="flex gap-4 justify-center">
-                            <DownloadButton onClick={handleDownload} filename="metadata-updated.pdf" />
+                            <DownloadButton
+                                onClick={handleDownload}
+                                filename="metadata-updated.pdf"
+                                isReady={true}
+                            />
                             <Button onClick={handleReset} variant="outline" size="lg">
                                 Edit Another PDF
                             </Button>
