@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Menu,
@@ -15,6 +15,21 @@ import {
     RotateCw,
     Moon,
     Sun,
+    LayoutGrid,
+    FileImage,
+    FileType,
+    Table,
+    Sheet,
+    Droplets,
+    Hash,
+    Trash2,
+    FileOutput,
+    Type,
+    PenTool,
+    Edit3,
+    Lock,
+    Unlock,
+    Wrench,
 } from "lucide-react";
 import { TOOLS, TOOL_CATEGORIES } from "@/lib/constants";
 
@@ -31,15 +46,41 @@ export function Header() {
     const iconMap: { [key: string]: React.ReactNode } = {
         Layers: <Layers className="w-4 h-4" aria-hidden="true" />,
         Scissors: <Scissors className="w-4 h-4" aria-hidden="true" />,
-        // eslint-disable-next-line jsx-a11y/alt-text
-        ImageIcon: <Image className="w-4 h-4" aria-hidden="true" />,
+        Image: <Image className="w-4 h-4" aria-hidden="true" />,
         Minimize2: <Minimize2 className="w-4 h-4" aria-hidden="true" />,
         RotateCw: <RotateCw className="w-4 h-4" aria-hidden="true" />,
         FileText: <FileText className="w-4 h-4" aria-hidden="true" />,
+        LayoutGrid: <LayoutGrid className="w-4 h-4" aria-hidden="true" />,
+        FileImage: <FileImage className="w-4 h-4" aria-hidden="true" />,
+        FileType: <FileType className="w-4 h-4" aria-hidden="true" />,
+        Table: <Table className="w-4 h-4" aria-hidden="true" />,
+        Sheet: <Sheet className="w-4 h-4" aria-hidden="true" />,
+        Droplets: <Droplets className="w-4 h-4" aria-hidden="true" />,
+        Hash: <Hash className="w-4 h-4" aria-hidden="true" />,
+        Trash2: <Trash2 className="w-4 h-4" aria-hidden="true" />,
+        FileOutput: <FileOutput className="w-4 h-4" aria-hidden="true" />,
+        Type: <Type className="w-4 h-4" aria-hidden="true" />,
+        PenTool: <PenTool className="w-4 h-4" aria-hidden="true" />,
+        Edit3: <Edit3 className="w-4 h-4" aria-hidden="true" />,
+        Lock: <Lock className="w-4 h-4" aria-hidden="true" />,
+        Unlock: <Unlock className="w-4 h-4" aria-hidden="true" />,
+        Wrench: <Wrench className="w-4 h-4" aria-hidden="true" />,
     };
 
+    // Lock body scroll when mobile menu is open
+    useEffect(() => {
+        if (mobileMenuOpen) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "unset";
+        }
+        return () => {
+            document.body.style.overflow = "unset";
+        };
+    }, [mobileMenuOpen]);
+
     return (
-        <header className="sticky top-0 z-50 glass border-b border-surface-200 dark:border-surface-700">
+        <header className="fixed top-0 inset-x-0 z-50 glass border-b border-surface-200 dark:border-surface-700">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
@@ -196,7 +237,7 @@ export function Header() {
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: "auto" }}
                             exit={{ opacity: 0, height: 0 }}
-                            className="lg:hidden border-t border-surface-200 dark:border-surface-700"
+                            className="lg:hidden border-t border-surface-200 dark:border-surface-700 max-h-[calc(100vh-4rem)] overflow-y-auto"
                         >
                             <div className="py-4 space-y-2">
                                 {TOOL_CATEGORIES.map((category) => (
