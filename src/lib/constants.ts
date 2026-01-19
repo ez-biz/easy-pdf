@@ -166,6 +166,15 @@ export const TOOLS: Tool[] = [
         color: "from-emerald-500 to-emerald-600",
     },
     {
+        id: "edit-metadata",
+        name: "Edit Metadata",
+        description: "View and edit PDF document properties",
+        href: "/edit-metadata",
+        icon: "FileText",
+        category: "edit",
+        color: "from-purple-500 to-purple-600",
+    },
+    {
         id: "sign-pdf",
         name: "Sign PDF",
         description: "Add your signature to PDF documents",
