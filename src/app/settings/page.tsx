@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Settings as SettingsIcon, BarChart3, Clock, Trash2, Save, Moon, Sun } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +19,11 @@ export default function SettingsPage() {
 
     const [hasChanges, setHasChanges] = useState(false);
     const [localSettings, setLocalSettings] = useState(settings);
+
+    // Sync localSettings with store when it hydrates from localStorage
+    useEffect(() => {
+        setLocalSettings(settings);
+    }, [settings]);
 
     const handleSettingChange = (key: keyof typeof settings, value: string | boolean) => {
         setLocalSettings(prev => ({ ...prev, [key]: value }));
