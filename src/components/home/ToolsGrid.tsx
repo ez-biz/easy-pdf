@@ -16,6 +16,9 @@ import {
     Sheet,
     Droplets,
     Hash,
+    Trash2,
+    FileOutput,
+    Type,
     PenTool,
     Edit3,
     Lock,
@@ -40,6 +43,9 @@ const iconMap: { [key: string]: LucideIcon } = {
     Sheet,
     Droplets,
     Hash,
+    Trash2,
+    FileOutput,
+    Type,
     PenTool,
     Edit3,
     Lock,
@@ -76,8 +82,8 @@ export function ToolsGrid() {
                     <button
                         onClick={() => setActiveCategory("all")}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeCategory === "all"
-                                ? "bg-primary-500 text-white shadow-lg shadow-primary-500/25"
-                                : "bg-white dark:bg-surface-800 text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700"
+                            ? "bg-primary-500 text-white shadow-lg shadow-primary-500/25"
+                            : "bg-white dark:bg-surface-800 text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700"
                             }`}
                     >
                         All Tools
@@ -87,8 +93,8 @@ export function ToolsGrid() {
                             key={category.id}
                             onClick={() => setActiveCategory(category.id)}
                             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeCategory === category.id
-                                    ? "bg-primary-500 text-white shadow-lg shadow-primary-500/25"
-                                    : "bg-white dark:bg-surface-800 text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700"
+                                ? "bg-primary-500 text-white shadow-lg shadow-primary-500/25"
+                                : "bg-white dark:bg-surface-800 text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700"
                                 }`}
                         >
                             {category.name}
