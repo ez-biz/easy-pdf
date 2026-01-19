@@ -1,0 +1,123 @@
+import { PDFDocument, PDFImage, degrees } from "pdf-lib";
+
+export interface ImageOverlay {
+    id: string;
+    file: File;
+    x: number; // X position (0-100%)
+    y: number; // Y position (0-100%)
+    width: number; // Width (0-100%)
+    height: number; // Height (auto-calculated usually, but strictly passed as %)
+    page: number; // Page number (0-indexed)
+    rotation: number;
+}
+
+
+/**
+ * Add image overlays to a PDF file
+ */
+export async function addImagesToPDF(
+    pdfFile: File,
+    images: ImageOverlay[]
+): Promise<{
+    success: boolean;
+    data?: Uint8Array;
+    error?: string;
+}> {
+    try {
+        const arrayBuffer = await pdfFile.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        const pages = pdfDoc.getPages();
+
+        // Group images by page
+        const imagesByPage = new Map<number, ImageOverlay[]>();
+        images.forEach((img) => {
+            if (!imagesByPage.has(img.page)) {
+                imagesByPage.set(img.page, []);
+            }
+            imagesByPage.get(img.page)!.push(img);
+        });
+
+        // Cache for embedded images to avoid re-embedding same file multiple times?
+        // For MVP, simplistic embedding is fine, but if user duplicates image, we might embed twice.
+        // We'll rely on unique files for now.
+
+        for (const [pageIndex, overlays] of imagesByPage) {
+            if (pageIndex >= pages.length) continue;
+
+            const page = pages[pageIndex];
+            const { width: pageWidth, height: pageHeight } = page.getSize();
+
+            // Get page origin for correct placement (CropBox/MediaBox)
+            const cropBox = page.getCropBox() ?? page.getMediaBox();
+            const pageOriginX = cropBox?.x ?? 0;
+            const pageOriginY = cropBox?.y ?? 0;
+
+            for (const overlay of overlays) {
+                // Read image file
+                const imageBuffer = await overlay.file.arrayBuffer();
+                let pdfImage: PDFImage;
+
+                // Embed based on type
+                if (overlay.file.type === "image/png") {
+                    pdfImage = await pdfDoc.embedPng(imageBuffer);
+                } else if (overlay.file.type === "image/jpeg" || overlay.file.type === "image/jpg") {
+                    pdfImage = await pdfDoc.embedJpg(imageBuffer);
+                } else {
+                    // Start basic heuristic or fail
+                    try {
+                        pdfImage = await pdfDoc.embedPng(imageBuffer);
+                    } catch {
+                        try {
+                            pdfImage = await pdfDoc.embedJpg(imageBuffer);
+                        } catch {
+                            console.warn(`Unsupported image type for file: ${overlay.file.name}`);
+                            continue;
+                        }
+                    }
+                }
+
+                // Calculate absolute position
+                // x, y, width, height are percentages of the page dimensions
+                const imgX = pageOriginX + (overlay.x / 100) * pageWidth;
+                const imgW = (overlay.width / 100) * pageWidth;
+                const imgH = (overlay.height / 100) * pageHeight;
+
+                // Y calculation:
+                // UI 'top' is overlay.y %.
+                // PDF 'y' is derived from bottom.
+                // We draw image at `y`. The image height is `imgH`.
+                // UI Rect: top = y%, bottom = y% + h%
+                // PDF Rect: bottom = Y, top = Y + imgH
+                // We want PDF Top to match UI Top.
+                // PDF Top = (OriginY + PageHeight - (y% * PageHeight))
+                // Y = PDF Top - imgH
+                // So: Y = OriginY + PageHeight - (y% * PageHeight) - imgH
+
+                // Correction: UI has 0-padding usually for images, unlike text.
+                // But we should verify if DraggableBox has padding.
+
+                const y = pageOriginY + pageHeight - (overlay.y / 100) * pageHeight - imgH;
+
+                page.drawImage(pdfImage, {
+                    x: imgX,
+                    y: y,
+                    width: imgW,
+                    height: imgH,
+                    rotate: degrees(overlay.rotation),
+                });
+            }
+        }
+
+        const pdfBytes = await pdfDoc.save();
+
+        return {
+            success: true,
+            data: pdfBytes,
+        };
+    } catch (err) {
+        return {
+            success: false,
+            error: err instanceof Error ? err.message : "Failed to add images to PDF",
+        };
+    }
+}
