@@ -1,0 +1,77 @@
+# System Architecture
+
+EasyPDF is a privacy-focused PDF manipulation suite built with Next.js 15.
+
+## Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| **Framework** | Next.js 15.5+ (App Router) |
+| **Language** | TypeScript 5+ (strict mode) |
+| **Styling** | Tailwind CSS 3.4 |
+| **PDF Engine** | pdf-lib (client-side) |
+| **Animations** | Framer Motion 11+ |
+| **State** | Zustand 5 |
+
+## Client-Side Processing
+
+All PDF operations use `pdf-lib` in the browser:
+
+```
+User Upload → ArrayBuffer → PDFDocument.load() → Processing → doc.save() → Download
+```
+
+**Benefits:**
+- ✅ Complete privacy (files never leave device)
+- ✅ No server costs
+- ✅ Works offline after initial load
+
+## Server/Client Component Pattern
+
+Each tool follows this pattern for SEO:
+
+```tsx
+// page.tsx (Server Component)
+import { Metadata } from 'next';
+import MergeClient from './MergeClient';
+
+export const metadata: Metadata = {
+  title: 'Merge PDF',
+  description: 'Combine multiple PDFs',
+};
+
+export default function MergePage() {
+  return (
+    <>
+      <script type="application/ld+json" ... />
+      <MergeClient />
+    </>
+  );
+}
+```
+
+## Coordinate System
+
+PDFs use **bottom-left origin** while HTML uses **top-left origin**.
+
+When placing overlays, convert coordinates:
+```typescript
+const pdfY = pageHeight - htmlY - elementHeight;
+```
+
+## Tool Registration
+
+All tools are defined in `src/lib/constants.ts`:
+
+```typescript
+export const ALL_TOOLS: Tool[] = [
+  { slug: "merge-pdf", name: "Merge PDF", icon: Combine },
+  // ...
+];
+```
+
+Adding a new tool:
+1. Add entry to `ALL_TOOLS`
+2. Create `src/app/(tools)/[slug]/page.tsx`
+3. Create `src/app/(tools)/[slug]/*Client.tsx`
+4. Add PDF utility in `src/lib/pdf/`

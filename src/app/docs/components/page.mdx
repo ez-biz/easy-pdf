@@ -1,0 +1,115 @@
+# Components
+
+Reusable components in EasyPDF.
+
+## Layout Components
+
+### ToolLayout
+
+Standard wrapper for every tool page.
+
+```tsx
+<ToolLayout
+  title="Merge PDF"
+  description="Combine multiple PDFs"
+  icon={Combine}
+  color="from-blue-500 to-blue-600"
+>
+  {children}
+</ToolLayout>
+```
+
+---
+
+## Tool Components
+
+### FileUploader
+
+Drag-and-drop file upload zone.
+
+```tsx
+<FileUploader
+  accept={{ "application/pdf": [".pdf"] }}
+  maxFiles={10}
+  files={files}
+  onFilesChange={setFiles}
+/>
+```
+
+---
+
+### PDFPageRenderer
+
+Renders a PDF page to canvas.
+
+```tsx
+<PDFPageRenderer
+  file={file}
+  pageNumber={1}
+  onPageRendered={() => {}}
+/>
+```
+
+---
+
+### DownloadButton
+
+Styled download button.
+
+```tsx
+<DownloadButton
+  onClick={download}
+  filename="output.pdf"
+  isReady={true}
+/>
+```
+
+---
+
+### DraggableImageBox
+
+Interactive overlay for positioning images.
+
+- **Drag**: Move element
+- **Corner drag**: Resize
+- **Top handle**: Rotate
+
+---
+
+### SignaturePad
+
+Canvas-based signature drawing.
+
+```tsx
+<SignaturePad
+  onSave={(dataUrl) => {}}
+  onClose={() => {}}
+/>
+```
+
+---
+
+## UI Components
+
+### Button
+
+```tsx
+<Button variant="primary" size="lg">
+  Click Me
+</Button>
+```
+
+**Variants:** `primary`, `secondary`, `outline`, `ghost`, `danger`
+
+---
+
+### Toast System
+
+```tsx
+const toast = useToast();
+
+toast.success("Done!");
+toast.error("Failed");
+toast.warning("Warning");
+toast.info("Info");
+```

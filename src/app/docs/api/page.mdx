@@ -1,0 +1,108 @@
+# API Reference
+
+All PDF utility functions in `src/lib/pdf/`.
+
+## Common Types
+
+```typescript
+interface PDFOperationResult {
+  success: boolean;
+  data?: Uint8Array;
+  error?: string;
+}
+```
+
+## Core Functions
+
+### merge.ts
+
+**`mergePDFs(files: File[]): Promise<PDFOperationResult>`**
+
+Combines multiple PDF files into one.
+
+```typescript
+const result = await mergePDFs([file1, file2]);
+```
+
+---
+
+### split.ts
+
+**`splitPDF(file: File, ranges: PageRange[]): Promise<PDFOperationResult>`**
+
+Splits a PDF by page ranges.
+
+```typescript
+const result = await splitPDF(file, [{ start: 0, end: 2 }]);
+```
+
+---
+
+### rotate.ts
+
+**`rotatePDF(file: File, rotations: RotationMap): Promise<PDFOperationResult>`**
+
+Rotates pages by 90°, 180°, or 270°.
+
+```typescript
+const result = await rotatePDF(file, { 0: 90, 2: 180 });
+```
+
+---
+
+### organize.ts
+
+- `getPageCount(file)` - Returns page count
+- `extractPages(file, indices)` - Creates new PDF from pages
+- `removePages(file, indices)` - Removes pages
+- `reorderPages(file, newOrder)` - Reorders pages
+
+---
+
+### watermark.ts
+
+**`addTextWatermark(file, options): Promise<PDFOperationResult>`**
+
+```typescript
+await addTextWatermark(file, {
+  text: "CONFIDENTIAL",
+  fontSize: 48,
+  opacity: 0.3,
+  position: "diagonal"
+});
+```
+
+---
+
+### metadata.ts
+
+- `readMetadata(file)` - Returns PDF properties
+- `updateMetadata(file, metadata)` - Updates properties
+
+---
+
+### security.ts
+
+- `protectPDF(file, password)` - Add password
+- `unlockPDF(file, password)` - Remove password
+
+---
+
+### toImage.ts
+
+- `convertPDFToImages(file, format, quality)` - Export as images
+- `getPDFThumbnails(file, size)` - Generate previews
+
+---
+
+### fromImage.ts
+
+**`imagesToPDF(files, options): Promise<PDFOperationResult>`**
+
+Creates PDF from images.
+
+---
+
+### addText.ts / addImage.ts
+
+Add text boxes and image overlays to PDF pages.

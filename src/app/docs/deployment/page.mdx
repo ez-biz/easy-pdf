@@ -1,0 +1,68 @@
+# Deployment
+
+Deploy EasyPDF to production.
+
+## Static Export
+
+The app is configured for static export:
+
+```typescript
+// next.config.ts
+output: "export",
+images: { unoptimized: true }
+```
+
+Build command: `npm run build` → generates `out/` directory.
+
+---
+
+## Vercel (Recommended)
+
+1. Push to GitHub
+2. Import at [vercel.com](https://vercel.com)
+3. Click Deploy
+
+Or use CLI:
+```bash
+npm i -g vercel
+vercel --prod
+```
+
+---
+
+## Cloudflare Pages
+
+1. Connect repo at [pages.cloudflare.com](https://pages.cloudflare.com)
+2. Build command: `npm run build`
+3. Output directory: `out`
+
+---
+
+## Hostinger (FTP)
+
+Use GitHub Actions workflow:
+
+```yaml
+# .github/workflows/deploy.yml
+- uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+  with:
+    server: ${{ secrets.FTP_SERVER }}
+    username: ${{ secrets.FTP_USERNAME }}
+    password: ${{ secrets.FTP_PASSWORD }}
+    local-dir: ./out/
+    server-dir: /public_html/
+```
+
+Required secrets:
+- `FTP_SERVER`
+- `FTP_USERNAME` 
+- `FTP_PASSWORD`
+
+---
+
+## Post-Deployment
+
+- [ ] Test all tools
+- [ ] Check meta tags
+- [ ] Run Lighthouse audit
+- [ ] Test on mobile

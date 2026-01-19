@@ -9,7 +9,7 @@ A modern, privacy-focused PDF manipulation suite built with Next.js 15. All proc
 
 ## ✨ Features
 
-### 12 Complete PDF Tools
+### 17 Complete PDF Tools
 
 | Category | Tools | Status |
 |----------|-------|--------|
@@ -95,9 +95,7 @@ easy-pdf/
 ├── src/
 │   ├── app/
 │   │   ├── (tools)/              # Tool pages (merge, split, etc.)
-│   │   ├── privacy/              # Privacy policy
-│   │   ├── terms/                # Terms of service
-│   │   ├── contact/              # Contact page
+│   │   ├── docs/                 # Documentation site (MDX)
 │   │   ├── layout.tsx            # Root layout with providers
 │   │   └── page.tsx              # Homepage
 │   ├── components/

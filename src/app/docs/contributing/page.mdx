@@ -1,0 +1,71 @@
+# Contributing
+
+Guidelines for contributing to EasyPDF.
+
+## Quick Start
+
+```bash
+git clone https://github.com/ez-biz/easy-pdf.git
+cd easy-pdf
+npm install
+npm run dev
+```
+
+---
+
+## Development Workflow
+
+1. Create branch: `git checkout -b feature/name`
+2. Make changes
+3. Test: `npm run lint && npm run build`
+4. Submit PR
+
+---
+
+## Code Style
+
+### TypeScript
+- Use strict types
+- Avoid `any`
+
+### Components
+- Functional components with hooks
+- Use `"use client"` only when needed
+
+### Naming
+| Type | Convention |
+|------|------------|
+| Components | `PascalCase.tsx` |
+| Utilities | `camelCase.ts` |
+| Client Components | `*Client.tsx` |
+
+---
+
+## Adding a Tool
+
+1. Add to `src/lib/constants.ts`
+2. Create `src/app/(tools)/[slug]/page.tsx`
+3. Create `src/app/(tools)/[slug]/*Client.tsx`
+4. Add PDF utility in `src/lib/pdf/`
+
+---
+
+## Commits
+
+Use conventional format:
+```
+feat: add new feature
+fix: bug fix
+docs: documentation
+refactor: code cleanup
+```
+
+---
+
+## Testing Checklist
+
+- [ ] `npm run lint` passes
+- [ ] `npm run build` succeeds
+- [ ] Works in Chrome, Firefox, Safari
+- [ ] Mobile responsive
+- [ ] Dark mode works
