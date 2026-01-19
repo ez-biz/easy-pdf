@@ -82,28 +82,44 @@ export async function addImagesToPDF(
                 const imgW = (overlay.width / 100) * pageWidth;
                 const imgH = (overlay.height / 100) * pageHeight;
 
-                // Y calculation:
-                // UI 'top' is overlay.y %.
-                // PDF 'y' is derived from bottom.
-                // We draw image at `y`. The image height is `imgH`.
-                // UI Rect: top = y%, bottom = y% + h%
-                // PDF Rect: bottom = Y, top = Y + imgH
-                // We want PDF Top to match UI Top.
-                // PDF Top = (OriginY + PageHeight - (y% * PageHeight))
-                // Y = PDF Top - imgH
-                // So: Y = OriginY + PageHeight - (y% * PageHeight) - imgH
-
-                // Correction: UI has 0-padding usually for images, unlike text.
-                // But we should verify if DraggableBox has padding.
-
+                // PDF Y: Bottom-up. UI Top is overlay.y %.
+                // Unrotated Bottom-Left Y: 
                 const y = pageOriginY + pageHeight - (overlay.y / 100) * pageHeight - imgH;
 
+                // ROTATION CENTER LOGIC
+                // Calculate Center of the bounding box (UI placement center)
+                const centerX = imgX + imgW / 2;
+                const centerY = y + imgH / 2;
+
+                // PDF-Lib rotation angle (Degrees)
+                // UI angle is Clockwise from 12 o'clock, but PDF is CCW.
+                // We use -rotation to flip the direction.
+                const pdfAngle = -overlay.rotation;
+                const angleRad = (pdfAngle * Math.PI) / 180;
+
+                // Vector from Corner (bottom-left) to Center (relative to corner, unrotated)
+                // localCenter = (w/2, h/2)
+                // rotatedVector = Rotate(localCenter, angle)
+                // v_x = (w/2)cos - (h/2)sin
+                // v_y = (w/2)sin + (h/2)cos
+
+                const halfW = imgW / 2;
+                const halfH = imgH / 2;
+
+                const vecX = halfW * Math.cos(angleRad) - halfH * Math.sin(angleRad);
+                const vecY = halfW * Math.sin(angleRad) + halfH * Math.cos(angleRad);
+
+                // Calculate Pivot Point (The x,y passed to drawImage)
+                // drawPoint + rotatedVector = expectedCenter
+                const drawX = centerX - vecX;
+                const drawY = centerY - vecY;
+
                 page.drawImage(pdfImage, {
-                    x: imgX,
-                    y: y,
+                    x: drawX,
+                    y: drawY,
                     width: imgW,
                     height: imgH,
-                    rotate: degrees(overlay.rotation),
+                    rotate: degrees(pdfAngle),
                 });
             }
         }

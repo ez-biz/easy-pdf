@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { motion, useDragControls } from "framer-motion";
-import { Image as ImageIcon, Trash2, Plus } from "lucide-react";
+import { Image as ImageIcon, Trash2, Plus, RotateCw } from "lucide-react";
 import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
@@ -35,6 +35,7 @@ function DraggableImageBox({
     aspectRatio,
 }: DraggableImageBoxProps) {
     const controls = useDragControls();
+    const boxRef = useRef<HTMLDivElement>(null);
 
     return (
         <motion.div
@@ -70,10 +71,14 @@ function DraggableImageBox({
             }}
         >
             <div
+                ref={boxRef}
                 className={`relative group h-full ${isSelected
                         ? "ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-surface-800"
                         : "hover:ring-1 hover:ring-primary-300"
                     } rounded cursor-move transition-shadow`}
+                style={{
+                    transform: `rotate(${overlay.rotation}deg)`,
+                }}
                 onPointerDown={(e) => controls.start(e)}
             >
                 {/* Image Display */}
@@ -138,6 +143,43 @@ function DraggableImageBox({
                                 window.addEventListener("pointerup", handlePointerUp);
                             }}
                         />
+
+                        {/* Rotation Handle (Top Center) */}
+                        <div
+                            className="absolute -top-8 left-1/2 -translate-x-1/2 p-1 bg-primary-500 text-white rounded-full cursor-grab active:cursor-grabbing shadow-sm z-10"
+                            onPointerDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+
+                                const box = boxRef.current;
+                                if (!box) return;
+                                const rect = box.getBoundingClientRect();
+                                const centerX = rect.left + rect.width / 2;
+                                const centerY = rect.top + rect.height / 2;
+
+                                const handlePointerMove = (moveEvent: PointerEvent) => {
+                                    const dx = moveEvent.clientX - centerX;
+                                    const dy = moveEvent.clientY - centerY;
+                                    const angle = Math.atan2(dy, dx);
+                                    // Angle is CCW from Right in DOM coords (Y down).
+                                    // 0 = Right, 90 = Down, -90 = Up.
+                                    // We want 0 degrees at Up.
+                                    // So Rotation = angle - (-90) = angle + 90.
+                                    const degrees = angle * (180 / Math.PI) + 90;
+                                    onUpdate(overlay.id, { rotation: degrees });
+                                };
+
+                                const handlePointerUp = () => {
+                                    window.removeEventListener("pointermove", handlePointerMove);
+                                    window.removeEventListener("pointerup", handlePointerUp);
+                                };
+
+                                window.addEventListener("pointermove", handlePointerMove);
+                                window.addEventListener("pointerup", handlePointerUp);
+                            }}
+                        >
+                            <RotateCw className="w-3 h-3" />
+                        </div>
                     </>
                 )}
             </div>
