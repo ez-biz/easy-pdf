@@ -1,11 +1,3 @@
-type AnalyticsEvent = {
-    action: string;
-    category?: string;
-    label?: string;
-    value?: number;
-    [key: string]: any;
-};
-
 // Declare gtag as a global function
 declare global {
     interface Window {
@@ -16,6 +8,7 @@ declare global {
                 event_category?: string;
                 event_label?: string;
                 value?: number;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 [key: string]: any;
             }
         ) => void;
@@ -27,6 +20,7 @@ declare global {
  * @param eventName - The name of the event (e.g., 'tool_used', 'file_upload')
  * @param params - Additional parameters for the event
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const trackEvent = (eventName: string, params: Record<string, any> = {}) => {
     if (typeof window !== "undefined" && window.gtag) {
         window.gtag("event", eventName, params);

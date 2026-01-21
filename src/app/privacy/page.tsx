@@ -53,7 +53,7 @@ export default function PrivacyPage() {
                             We collect minimal data to improve our service:
                         </p>
                         <ul className="list-disc list-inside space-y-2 text-surface-600 dark:text-surface-300">
-                            <li><strong>Analytics:</strong> We use Google Analytics (GA4) with IP anonymization to understand general usage trends (e.g., "Merge PDF was used 50 times"). We do <strong>not</strong> track individual filenames, file content, or personal identifiers.</li>
+                            <li><strong>Analytics:</strong> We use Google Analytics (GA4) with IP anonymization to understand general usage trends (e.g., &quot;Merge PDF was used 50 times&quot;). We do <strong>not</strong> track individual filenames, file content, or personal identifiers.</li>
                             <li><strong>Cookies:</strong> We use essential cookies for site functionality and preferences (like dark mode).</li>
                             <li><strong>No Personal Data:</strong> We do not collect names, emails, or any personally identifiable information unless you voluntarily provide it.</li>
                         </ul>
