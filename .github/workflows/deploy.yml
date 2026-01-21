@@ -22,6 +22,8 @@ jobs:
 
       - name: Build project
         run: npm run build
+        env:
+          NEXT_PUBLIC_GA_ID: ${{ secrets.NEXT_PUBLIC_GA_ID }}
 
       - name: Upload to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5

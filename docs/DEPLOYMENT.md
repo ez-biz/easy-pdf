@@ -190,11 +190,13 @@ jobs:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `NEXT_PUBLIC_BASE_URL` | Your production URL | `https://easypdf.com` |
+| `NEXT_PUBLIC_GA_ID` | Google Analytics ID | `G-XXXXXXXXXX` |
 
-Set in Vercel/Netlify dashboard or in `.env.local`:
+Set in Vercel/Netlify dashboard, `.env.local`, or GitHub Secrets:
 
 ```env
 NEXT_PUBLIC_BASE_URL=https://yourdomain.com
+NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
 ```
 
 ---

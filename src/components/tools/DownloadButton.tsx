@@ -3,6 +3,8 @@
 import { Download, Loader2, CheckCircle } from "lucide-react";
 import { cn, formatFileSize } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
+import { usePathname } from "next/navigation";
+import { trackToolUsage } from "@/lib/analytics";
 
 interface DownloadButtonProps {
     onClick: () => void;
@@ -21,6 +23,17 @@ export function DownloadButton({
     isReady = false,
     className,
 }: DownloadButtonProps) {
+    const pathname = usePathname();
+
+    const handleClick = () => {
+        // Track the download event
+        const toolName = pathname?.split("/").pop() || "unknown-tool";
+        trackToolUsage(toolName, "download");
+
+        // Execute original onClick
+        onClick();
+    };
+
     return (
         <div
             className={cn(
@@ -42,7 +55,7 @@ export function DownloadButton({
                             {fileSize && ` · ${formatFileSize(fileSize)}`}
                         </p>
                     </div>
-                    <Button onClick={onClick} size="lg" leftIcon={<Download className="w-5 h-5" />}>
+                    <Button onClick={handleClick} size="lg" leftIcon={<Download className="w-5 h-5" />}>
                         Download File
                     </Button>
                 </>
