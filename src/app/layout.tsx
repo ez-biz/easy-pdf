@@ -59,6 +59,9 @@ export const metadata: Metadata = {
         title: "EasyPDF - Free Online PDF Tools",
         description: "All the tools you need to work with PDFs, completely free and easy to use.",
     },
+    alternates: {
+        canonical: "./",
+    },
 };
 
 import { GoogleAnalytics } from "@next/third-parties/google";
