@@ -35,14 +35,27 @@ export async function protectPDF(
         const arrayBuffer = await pdfFile.arrayBuffer();
         const pdfDoc = await PDFDocument.load(arrayBuffer);
 
-        // @cantoo/pdf-lib supports encryption through the save() method
+        // @cantoo/pdf-lib supports encryption via the encrypt() method
         const ownerPassword = options.ownerPassword || options.userPassword;
 
-        const pdfBytes = await pdfDoc.save({
+        // Apply encryption
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (pdfDoc as any).encrypt({
             userPassword: options.userPassword,
             ownerPassword: ownerPassword,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any); // Type assertion needed as TypeScript definitions may not include encryption options
+            permissions: {
+                printing: 'highResolution',
+                modifying: false,
+                copying: false,
+                annotating: false,
+                fillingForms: false,
+                contentAccessibility: false,
+                documentAssembly: false,
+                ...options.permissions
+            },
+        });
+
+        const pdfBytes = await pdfDoc.save();
 
         return {
             success: true,
