@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, StandardFonts, degrees } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts, degrees } from "@cantoo/pdf-lib";
 
 export type WatermarkPosition =
     | "center"

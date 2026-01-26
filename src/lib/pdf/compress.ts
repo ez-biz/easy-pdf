@@ -1,4 +1,4 @@
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument } from "@cantoo/pdf-lib";
 import { readFileAsArrayBuffer } from "@/lib/utils";
 
 export interface CompressResult {

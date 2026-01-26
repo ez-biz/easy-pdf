@@ -1,4 +1,4 @@
-import { PDFDocument, degrees } from "pdf-lib";
+import { PDFDocument, degrees } from "@cantoo/pdf-lib";
 
 export interface OrganizeResult {
     success: boolean;
