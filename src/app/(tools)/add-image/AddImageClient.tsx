@@ -43,7 +43,7 @@ export default function AddImageClient() {
 
         try {
             const buffer = await newFiles[0].file.arrayBuffer();
-            const { PDFDocument } = await import("pdf-lib");
+            const { PDFDocument } = await import("@cantoo/pdf-lib");
             const doc = await PDFDocument.load(buffer);
             setNumPages(doc.getPageCount());
         } catch (e) {

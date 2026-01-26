@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, StandardFonts, PDFFont } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts, PDFFont } from "@cantoo/pdf-lib";
 
 export interface TextBox {
     id: string;

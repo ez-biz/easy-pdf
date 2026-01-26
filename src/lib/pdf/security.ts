@@ -1,4 +1,4 @@
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument } from "@cantoo/pdf-lib";
 
 export interface ProtectResult {
     success: boolean;
@@ -25,24 +25,35 @@ export interface UnlockResult {
 
 /**
  * Add password protection to a PDF
+ * Uses @cantoo/pdf-lib which supports encryption
  */
 export async function protectPDF(
     pdfFile: File,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _options: ProtectOptions
+    options: ProtectOptions
 ): Promise<ProtectResult> {
-    // options are ready for future implementation when we have a server-side solution
     try {
         const arrayBuffer = await pdfFile.arrayBuffer();
         const pdfDoc = await PDFDocument.load(arrayBuffer);
 
-        // pdf-lib doesn't support encryption directly
-        // We need to use a different approach or note this limitation
-        // For now, we'll save and return with a note about the limitation
+        // @cantoo/pdf-lib supports encryption via the encrypt() method
+        const ownerPassword = options.ownerPassword || options.userPassword;
 
-        // Note: pdf-lib does not natively support PDF encryption
-        // This would require a server-side solution or a different library
-        // For demo purposes, we'll return the original PDF
+        // Apply encryption
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (pdfDoc as any).encrypt({
+            userPassword: options.userPassword,
+            ownerPassword: ownerPassword,
+            permissions: {
+                printing: 'highResolution',
+                modifying: false,
+                copying: false,
+                annotating: false,
+                fillingForms: false,
+                contentAccessibility: false,
+                documentAssembly: false,
+                ...options.permissions
+            },
+        });
 
         const pdfBytes = await pdfDoc.save();
 
@@ -70,10 +81,12 @@ export async function unlockPDF(
         const arrayBuffer = await pdfFile.arrayBuffer();
 
         // Try to load the PDF with the provided password
-        // pdf-lib uses ignoreEncryption or password in the options
+        // @cantoo/pdf-lib uses ignoreEncryption or password in the options
         const pdfDoc = await PDFDocument.load(arrayBuffer, {
             ignoreEncryption: true,
-        } as Parameters<typeof PDFDocument.load>[1] & { password?: string });
+            password: _password,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any);
 
         // Save without encryption
         const pdfBytes = await pdfDoc.save();

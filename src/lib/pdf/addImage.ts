@@ -1,4 +1,4 @@
-import { PDFDocument, PDFImage, degrees } from "pdf-lib";
+import { PDFDocument, PDFImage, degrees } from "@cantoo/pdf-lib";
 
 export interface ImageOverlay {
     id: string;

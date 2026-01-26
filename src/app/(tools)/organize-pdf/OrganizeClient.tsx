@@ -161,7 +161,7 @@ export default function OrganizeClient() {
 
         try {
             const buffer = await selectedFile.file.arrayBuffer();
-            const { PDFDocument } = await import("pdf-lib");
+            const { PDFDocument } = await import("@cantoo/pdf-lib");
             const doc = await PDFDocument.load(buffer);
             const count = doc.getPageCount();
 

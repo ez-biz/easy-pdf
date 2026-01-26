@@ -1,4 +1,4 @@
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument } from "@cantoo/pdf-lib";
 import { readFileAsArrayBuffer, readFileAsDataURL } from "@/lib/utils";
 import { PAGE_SIZES } from "@/lib/constants";
 

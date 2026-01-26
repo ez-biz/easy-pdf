@@ -1,4 +1,4 @@
-import { PDFDocument, degrees } from "pdf-lib";
+import { PDFDocument, degrees } from "@cantoo/pdf-lib";
 import { readFileAsArrayBuffer } from "@/lib/utils";
 
 export interface RotateResult {
