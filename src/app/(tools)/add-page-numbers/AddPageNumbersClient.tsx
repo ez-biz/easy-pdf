@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Hash, Check } from "lucide-react";
+import { Hash, Check, Eye } from "lucide-react";
 import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
@@ -14,7 +14,9 @@ import {
     PageNumberPosition,
     PageNumberFormat,
 } from "@/lib/pdf/pageNumbers";
+import { generatePageNumberPreview } from "@/lib/pdf/previewUtils";
 import { downloadBlob, createPdfBlob } from "@/lib/utils";
+import NextImage from "next/image";
 
 const POSITION_OPTIONS: { id: PageNumberPosition; name: string }[] = [
     { id: "bottom-left", name: "Bottom Left" },
@@ -42,11 +44,71 @@ export default function AddPageNumbersClient() {
     const [result, setResult] = useState<{ blob: Blob } | null>(null);
     const [error, setError] = useState<string | null>(null);
 
+    // Preview state
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+    const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     const handleFilesChange = useCallback((newFiles: FileWithPreview[]) => {
         setFiles(newFiles);
         setResult(null);
         setError(null);
+        setPreviewUrl(null);
     }, []);
+
+    // Generate preview
+    const generatePreview = useCallback(async () => {
+        const file = files[0]?.file;
+        if (!file) {
+            setPreviewUrl(null);
+            return;
+        }
+
+        setIsGeneratingPreview(true);
+        try {
+            const preview = await generatePageNumberPreview(file, {
+                position,
+                format,
+                fontSize,
+                startNumber,
+                margin: 30,
+            });
+            setPreviewUrl(preview);
+        } catch (err) {
+            console.error("Failed to generate preview:", err);
+            setPreviewUrl(null);
+        } finally {
+            setIsGeneratingPreview(false);
+        }
+    }, [files, position, format, fontSize, startNumber]);
+
+    // Generate preview when file is uploaded
+    useEffect(() => {
+        if (files.length > 0) {
+            generatePreview();
+        }
+    }, [files, generatePreview]);
+
+    // Debounced preview regeneration when settings change
+    useEffect(() => {
+        if (files.length === 0) return;
+
+        // Clear existing timeout
+        if (previewTimeoutRef.current) {
+            clearTimeout(previewTimeoutRef.current);
+        }
+
+        // Set new timeout for debounced preview generation
+        previewTimeoutRef.current = setTimeout(() => {
+            generatePreview();
+        }, 300);
+
+        return () => {
+            if (previewTimeoutRef.current) {
+                clearTimeout(previewTimeoutRef.current);
+            }
+        };
+    }, [position, format, fontSize, startNumber, files.length, generatePreview]);
 
     const handleAddNumbers = async () => {
         if (files.length === 0) {
@@ -100,6 +162,7 @@ export default function AddPageNumbersClient() {
         setResult(null);
         setError(null);
         setProgress(0);
+        setPreviewUrl(null);
     };
 
     return (
@@ -122,99 +185,136 @@ export default function AddPageNumbersClient() {
                         description="or click to browse"
                     />
 
-                    {/* Options */}
+                    {/* Options and Preview */}
                     {files.length > 0 && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="grid md:grid-cols-2 gap-6"
+                            className="grid lg:grid-cols-2 gap-6"
                         >
-                            {/* Position */}
-                            <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-200 dark:border-surface-700">
-                                <h3 className="font-semibold text-surface-900 dark:text-white mb-4">
-                                    Position
-                                </h3>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {POSITION_OPTIONS.map((option) => (
-                                        <button
-                                            key={option.id}
-                                            type="button"
-                                            onClick={() => setPosition(option.id)}
-                                            className={`p-2 rounded-lg border-2 text-xs font-medium transition-all ${position === option.id
-                                                ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600"
-                                                : "border-surface-200 dark:border-surface-600"
-                                                }`}
-                                        >
-                                            {option.name}
-                                        </button>
-                                    ))}
+                            {/* Settings Panel */}
+                            <div className="space-y-6">
+                                {/* Position */}
+                                <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-200 dark:border-surface-700">
+                                    <h3 className="font-semibold text-surface-900 dark:text-white mb-4">
+                                        Position
+                                    </h3>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {POSITION_OPTIONS.map((option) => (
+                                            <button
+                                                key={option.id}
+                                                type="button"
+                                                onClick={() => setPosition(option.id)}
+                                                className={`p-2 rounded-lg border-2 text-xs font-medium transition-all ${position === option.id
+                                                    ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600"
+                                                    : "border-surface-200 dark:border-surface-600"
+                                                    }`}
+                                            >
+                                                {option.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Format */}
+                                <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-200 dark:border-surface-700">
+                                    <h3 className="font-semibold text-surface-900 dark:text-white mb-4">
+                                        Format
+                                    </h3>
+                                    <div className="space-y-2">
+                                        {FORMAT_OPTIONS.map((option) => (
+                                            <button
+                                                key={option.id}
+                                                type="button"
+                                                onClick={() => setFormat(option.id)}
+                                                className={`w-full p-3 rounded-xl border-2 text-left flex items-center justify-between transition-all ${format === option.id
+                                                    ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
+                                                    : "border-surface-200 dark:border-surface-600"
+                                                    }`}
+                                            >
+                                                <div>
+                                                    <span className="font-medium text-surface-900 dark:text-white">
+                                                        {option.name}
+                                                    </span>
+                                                    <span className="text-sm text-surface-500 ml-2">
+                                                        ({option.example})
+                                                    </span>
+                                                </div>
+                                                {format === option.id && (
+                                                    <Check className="w-5 h-5 text-primary-500" />
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Font Size */}
+                                <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-200 dark:border-surface-700">
+                                    <h3 className="font-semibold text-surface-900 dark:text-white mb-4">
+                                        Font Size: {fontSize}pt
+                                    </h3>
+                                    <input
+                                        type="range"
+                                        min="8"
+                                        max="24"
+                                        step="1"
+                                        value={fontSize}
+                                        onChange={(e) => setFontSize(parseInt(e.target.value))}
+                                        className="w-full h-2 bg-surface-200 dark:bg-surface-600 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                                    />
+                                    <div className="flex justify-between text-xs text-surface-500 mt-1">
+                                        <span>8pt</span>
+                                        <span>24pt</span>
+                                    </div>
+                                </div>
+
+                                {/* Start Number */}
+                                <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-200 dark:border-surface-700">
+                                    <h3 className="font-semibold text-surface-900 dark:text-white mb-4">
+                                        Start Number
+                                    </h3>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={startNumber}
+                                        onChange={(e) => setStartNumber(Math.max(1, parseInt(e.target.value) || 1))}
+                                        className="w-full px-4 py-3 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl text-surface-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                    />
                                 </div>
                             </div>
 
-                            {/* Format */}
+                            {/* Preview Panel */}
                             <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-200 dark:border-surface-700">
-                                <h3 className="font-semibold text-surface-900 dark:text-white mb-4">
-                                    Format
+                                <h3 className="font-semibold text-surface-900 dark:text-white mb-4 flex items-center gap-2">
+                                    <Eye className="w-5 h-5" />
+                                    Live Preview
                                 </h3>
-                                <div className="space-y-2">
-                                    {FORMAT_OPTIONS.map((option) => (
-                                        <button
-                                            key={option.id}
-                                            type="button"
-                                            onClick={() => setFormat(option.id)}
-                                            className={`w-full p-3 rounded-xl border-2 text-left flex items-center justify-between transition-all ${format === option.id
-                                                ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
-                                                : "border-surface-200 dark:border-surface-600"
-                                                }`}
-                                        >
-                                            <div>
-                                                <span className="font-medium text-surface-900 dark:text-white">
-                                                    {option.name}
-                                                </span>
-                                                <span className="text-sm text-surface-500 ml-2">
-                                                    ({option.example})
-                                                </span>
+                                <div className="relative aspect-[3/4] bg-surface-50 dark:bg-surface-900 rounded-xl overflow-hidden border border-surface-200 dark:border-surface-700">
+                                    {isGeneratingPreview ? (
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="spinner border-primary-500" />
+                                            <span className="ml-3 text-surface-500">Generating preview...</span>
+                                        </div>
+                                    ) : previewUrl ? (
+                                        <NextImage
+                                            src={previewUrl}
+                                            alt="Page numbers preview"
+                                            fill
+                                            className="object-contain"
+                                            unoptimized
+                                        />
+                                    ) : (
+                                        <div className="absolute inset-0 flex items-center justify-center text-surface-400">
+                                            <div className="text-center">
+                                                <Eye className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                                <p className="text-sm">Preview will appear here</p>
                                             </div>
-                                            {format === option.id && (
-                                                <Check className="w-5 h-5 text-primary-500" />
-                                            )}
-                                        </button>
-                                    ))}
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-
-                            {/* Font Size */}
-                            <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-200 dark:border-surface-700">
-                                <h3 className="font-semibold text-surface-900 dark:text-white mb-4">
-                                    Font Size: {fontSize}pt
-                                </h3>
-                                <input
-                                    type="range"
-                                    min="8"
-                                    max="24"
-                                    step="1"
-                                    value={fontSize}
-                                    onChange={(e) => setFontSize(parseInt(e.target.value))}
-                                    className="w-full h-2 bg-surface-200 dark:bg-surface-600 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                                />
-                                <div className="flex justify-between text-xs text-surface-500 mt-1">
-                                    <span>8pt</span>
-                                    <span>24pt</span>
-                                </div>
-                            </div>
-
-                            {/* Start Number */}
-                            <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-200 dark:border-surface-700">
-                                <h3 className="font-semibold text-surface-900 dark:text-white mb-4">
-                                    Start Number
-                                </h3>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    value={startNumber}
-                                    onChange={(e) => setStartNumber(Math.max(1, parseInt(e.target.value) || 1))}
-                                    className="w-full px-4 py-3 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl text-surface-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                />
+                                <p className="text-xs text-surface-500 mt-2 text-center">
+                                    Preview: Page 1
+                                </p>
                             </div>
                         </motion.div>
                     )}
