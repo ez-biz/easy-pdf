@@ -65,8 +65,8 @@ export const metadata: Metadata = {
 };
 
 import { GoogleAnalytics } from "@next/third-parties/google";
-
-// ... existing imports
+import { SentryInit } from "@/components/SentryInit";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function RootLayout({
     children,
@@ -76,11 +76,14 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body className="min-h-screen flex flex-col antialiased">
-                <ToastProvider>
-                    <Header />
-                    <main className="flex-1 pt-16">{children}</main>
-                    <Footer />
-                </ToastProvider>
+                <SentryInit />
+                <ErrorBoundary>
+                    <ToastProvider>
+                        <Header />
+                        <main className="flex-1 pt-16">{children}</main>
+                        <Footer />
+                    </ToastProvider>
+                </ErrorBoundary>
             </body>
             <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || ""} />
         </html>
