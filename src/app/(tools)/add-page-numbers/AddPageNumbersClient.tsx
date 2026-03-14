@@ -205,7 +205,7 @@ export default function AddPageNumbersClient() {
                                                 key={option.id}
                                                 type="button"
                                                 onClick={() => setPosition(option.id)}
-                                                className={`p-2 rounded-lg border-2 text-xs font-medium transition-all ${position === option.id
+                                                className={`p-2 rounded-lg border-2 text-xs font-medium transition-[border-color,background-color] ${position === option.id
                                                     ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600"
                                                     : "border-surface-200 dark:border-surface-600"
                                                     }`}
@@ -227,7 +227,7 @@ export default function AddPageNumbersClient() {
                                                 key={option.id}
                                                 type="button"
                                                 onClick={() => setFormat(option.id)}
-                                                className={`w-full p-3 rounded-xl border-2 text-left flex items-center justify-between transition-all ${format === option.id
+                                                className={`w-full p-3 rounded-xl border-2 text-left flex items-center justify-between transition-[border-color,background-color] ${format === option.id
                                                     ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
                                                     : "border-surface-200 dark:border-surface-600"
                                                     }`}

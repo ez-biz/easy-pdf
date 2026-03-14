@@ -124,7 +124,7 @@ export default function PDFToImageClient() {
                                         <button
                                             key={f.value}
                                             onClick={() => setFormat(f.value as ImageFormat)}
-                                            className={`p-4 rounded-xl border-2 text-center transition-all ${format === f.value
+                                            className={`p-4 rounded-xl border-2 text-center transition-[border-color,background-color] ${format === f.value
                                                 ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
                                                 : "border-surface-200 dark:border-surface-700 hover:border-surface-300"
                                                 }`}
@@ -152,7 +152,7 @@ export default function PDFToImageClient() {
                                         <button
                                             key={d.value}
                                             onClick={() => setDpi(d.value as DPI)}
-                                            className={`w-full p-4 rounded-xl border-2 text-left flex items-center gap-3 transition-all ${dpi === d.value
+                                            className={`w-full p-4 rounded-xl border-2 text-left flex items-center gap-3 transition-[border-color,background-color] ${dpi === d.value
                                                 ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
                                                 : "border-surface-200 dark:border-surface-700 hover:border-surface-300"
                                                 }`}

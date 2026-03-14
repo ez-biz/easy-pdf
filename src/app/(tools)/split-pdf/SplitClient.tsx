@@ -9,8 +9,9 @@ import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
-import { splitPDF, getPDFPageCount, SplitMode } from "@/lib/pdf/split";
+import { getPDFPageCount, SplitMode } from "@/lib/pdf/split";
 import { downloadBlob } from "@/lib/utils";
+import { usePDFWorker } from "@/hooks/usePDFWorker";
 
 const SPLIT_MODES = [
     {
@@ -44,10 +45,9 @@ export default function SplitClient() {
     const [pageCount, setPageCount] = useState(0);
     const [splitMode, setSplitMode] = useState<SplitMode>("range");
     const [inputValue, setInputValue] = useState("");
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [progress, setProgress] = useState(0);
     const [result, setResult] = useState<{ blob: Blob; fileCount: number } | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const { process, progress, stage, isProcessing, resetProgress } = usePDFWorker();
 
     const file = files[0]?.file;
 
@@ -72,39 +72,34 @@ export default function SplitClient() {
             return;
         }
 
-        setIsProcessing(true);
-        setProgress(0);
         setError(null);
 
         try {
-            const progressInterval = setInterval(() => {
-                setProgress((prev) => Math.min(prev + 10, 90));
-            }, 200);
-
-            const options = {
+            const options: Record<string, unknown> = {
                 mode: splitMode,
+                fileName: file.name,
                 ranges: splitMode === "range" ? inputValue : undefined,
                 pages:
                     splitMode === "pages"
-                        ? inputValue.split(",").map((p) => parseInt(p.trim())).filter((n) => !isNaN(n))
+                        ? inputValue
+                              .split(",")
+                              .map((p) => parseInt(p.trim()))
+                              .filter((n) => !isNaN(n))
                         : undefined,
                 everyN: splitMode === "every" ? parseInt(inputValue) : undefined,
             };
 
-            const splitResult = await splitPDF(file, options);
+            const workerResult = await process({
+                operation: "split",
+                files: [file],
+                options,
+            });
 
-            clearInterval(progressInterval);
-            setProgress(100);
-
-            if (splitResult.success && splitResult.data) {
-                setResult({ blob: splitResult.data, fileCount: splitResult.fileCount || 0 });
-            } else {
-                setError(splitResult.error || "Failed to split PDF");
-            }
+            const blob = new Blob([workerResult.data as BlobPart], { type: "application/zip" });
+            const fileCount = (workerResult.details?.fileCount as number) || 0;
+            setResult({ blob, fileCount });
         } catch (err) {
             setError(err instanceof Error ? err.message : "An error occurred");
-        } finally {
-            setIsProcessing(false);
         }
     };
 
@@ -119,9 +114,15 @@ export default function SplitClient() {
         setFiles([]);
         setResult(null);
         setError(null);
-        setProgress(0);
+        resetProgress();
         setInputValue("");
         setPageCount(0);
+    };
+
+    const handleAdjust = () => {
+        setResult(null);
+        setError(null);
+        resetProgress();
     };
 
     const selectedMode = SPLIT_MODES.find((m) => m.id === splitMode);
@@ -135,7 +136,6 @@ export default function SplitClient() {
         >
             {!result ? (
                 <div className="space-y-6">
-                    {/* File Uploader */}
                     <FileUploader
                         accept={{ "application/pdf": [".pdf"] }}
                         multiple={false}
@@ -145,29 +145,22 @@ export default function SplitClient() {
                         label="Drop your PDF file here"
                     />
 
-                    {/* Split Options */}
                     {file && pageCount > 0 && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="space-y-6"
                         >
-                            {/* Page Count Info */}
                             <div className="flex items-center gap-3 p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl">
                                 <div className="w-12 h-14 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
                                     <FileText className="w-6 h-6 text-red-500" />
                                 </div>
                                 <div>
-                                    <p className="font-medium text-surface-900 dark:text-white">
-                                        {file.name}
-                                    </p>
-                                    <p className="text-sm text-surface-500">
-                                        {pageCount} pages
-                                    </p>
+                                    <p className="font-medium text-surface-900 dark:text-white">{file.name}</p>
+                                    <p className="text-sm text-surface-500">{pageCount} pages</p>
                                 </div>
                             </div>
 
-                            {/* Split Mode Selection */}
                             <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-200 dark:border-surface-700">
                                 <h3 className="font-semibold text-surface-900 dark:text-white mb-4">
                                     Choose split method
@@ -180,10 +173,11 @@ export default function SplitClient() {
                                                 setSplitMode(mode.id);
                                                 setInputValue("");
                                             }}
-                                            className={`p-4 rounded-xl border-2 text-left transition-all ${splitMode === mode.id
-                                                ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
-                                                : "border-surface-200 dark:border-surface-700 hover:border-surface-300 dark:hover:border-surface-600"
-                                                }`}
+                                            className={`p-4 rounded-xl border-2 text-left transition-[border-color,background-color] ${
+                                                splitMode === mode.id
+                                                    ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
+                                                    : "border-surface-200 dark:border-surface-700 hover:border-surface-300 dark:hover:border-surface-600"
+                                            }`}
                                         >
                                             <p className="font-medium text-surface-900 dark:text-white">
                                                 {mode.name}
@@ -195,7 +189,6 @@ export default function SplitClient() {
                                     ))}
                                 </div>
 
-                                {/* Input Field */}
                                 {selectedMode && selectedMode.placeholder && (
                                     <div className="mt-4">
                                         <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
@@ -216,7 +209,6 @@ export default function SplitClient() {
                         </motion.div>
                     )}
 
-                    {/* Error Message */}
                     {error && (
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -227,21 +219,13 @@ export default function SplitClient() {
                         </motion.div>
                     )}
 
-                    {/* Progress */}
                     {isProcessing && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="space-y-2"
-                        >
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
                             <ProgressBar value={progress} />
-                            <p className="text-sm text-center text-surface-500">
-                                Splitting PDF...
-                            </p>
+                            <p className="text-sm text-center text-surface-500">{stage || "Splitting PDF..."}</p>
                         </motion.div>
                     )}
 
-                    {/* Action Buttons */}
                     {file && pageCount > 0 && !isProcessing && (
                         <div className="flex justify-center gap-4">
                             <Button variant="secondary" onClick={handleReset}>
@@ -262,12 +246,15 @@ export default function SplitClient() {
                         isReady
                     />
                     <div className="text-center">
-                        <p className="text-sm text-surface-500 mb-4">
-                            {result.fileCount} files created
-                        </p>
-                        <Button variant="secondary" onClick={handleReset}>
-                            Split Another PDF
-                        </Button>
+                        <p className="text-sm text-surface-500 mb-4">{result.fileCount} files created</p>
+                        <div className="flex justify-center gap-3">
+                            <Button variant="secondary" onClick={handleAdjust}>
+                                Try Different Settings
+                            </Button>
+                            <Button variant="secondary" onClick={handleReset}>
+                                Start Over
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )}

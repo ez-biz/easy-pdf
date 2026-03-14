@@ -9,9 +9,10 @@ import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
-import { compressPDF, CompressionLevel } from "@/lib/pdf/compress";
+import { CompressionLevel } from "@/lib/pdf/compress";
 import { downloadBlob, formatFileSize, createPdfBlob } from "@/lib/utils";
 import { COMPRESSION_LEVELS } from "@/lib/constants";
+import { usePDFWorker } from "@/hooks/usePDFWorker";
 
 function AnimatedNumber({ value }: { value: number }) {
     const spring = useSpring(0, { mass: 0.8, stiffness: 75, damping: 15 });
@@ -27,14 +28,13 @@ function AnimatedNumber({ value }: { value: number }) {
 export default function CompressClient() {
     const [files, setFiles] = useState<FileWithPreview[]>([]);
     const [compressionLevel, setCompressionLevel] = useState<CompressionLevel>("recommended");
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [progress, setProgress] = useState(0);
     const [result, setResult] = useState<{
         blob: Blob;
         originalSize: number;
         compressedSize: number;
     } | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const { process, progress, stage, isProcessing, resetProgress } = usePDFWorker();
 
     const file = files[0]?.file;
 
@@ -50,34 +50,24 @@ export default function CompressClient() {
             return;
         }
 
-        setIsProcessing(true);
-        setProgress(0);
         setError(null);
 
         try {
-            const progressInterval = setInterval(() => {
-                setProgress((prev) => Math.min(prev + 15, 90));
-            }, 200);
+            const workerResult = await process({
+                operation: "compress",
+                files: [file],
+                options: { level: compressionLevel },
+            });
 
-            const compressResult = await compressPDF(file);
-
-            clearInterval(progressInterval);
-            setProgress(100);
-
-            if (compressResult.success && compressResult.data) {
-                const blob = createPdfBlob(compressResult.data);
-                setResult({
-                    blob,
-                    originalSize: compressResult.originalSize || file.size,
-                    compressedSize: compressResult.compressedSize || blob.size,
-                });
-            } else {
-                setError(compressResult.error || "Failed to compress PDF");
-            }
+            const data = new Uint8Array(workerResult.data as ArrayBuffer);
+            const blob = createPdfBlob(data);
+            setResult({
+                blob,
+                originalSize: (workerResult.details?.originalSize as number) || file.size,
+                compressedSize: (workerResult.details?.compressedSize as number) || blob.size,
+            });
         } catch (err) {
             setError(err instanceof Error ? err.message : "An error occurred");
-        } finally {
-            setIsProcessing(false);
         }
     };
 
@@ -92,7 +82,13 @@ export default function CompressClient() {
         setFiles([]);
         setResult(null);
         setError(null);
-        setProgress(0);
+        resetProgress();
+    };
+
+    const handleAdjust = () => {
+        setResult(null);
+        setError(null);
+        resetProgress();
     };
 
     const compressionPercentage = result
@@ -110,7 +106,6 @@ export default function CompressClient() {
         >
             {!result ? (
                 <div className="space-y-6">
-                    {/* File Uploader */}
                     <FileUploader
                         accept={{ "application/pdf": [".pdf"] }}
                         multiple={false}
@@ -120,14 +115,12 @@ export default function CompressClient() {
                         label="Drop your PDF file here"
                     />
 
-                    {/* Compression Options */}
                     {file && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="space-y-6"
                         >
-                            {/* File Info */}
                             <div className="flex items-center gap-3 p-4 bg-surface-50 dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700">
                                 <div className="w-12 h-14 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
                                     <FileText className="w-6 h-6 text-red-500" />
@@ -142,7 +135,6 @@ export default function CompressClient() {
                                 </div>
                             </div>
 
-                            {/* Compression Level Selection */}
                             <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-200 dark:border-surface-700">
                                 <h3 className="font-semibold text-surface-900 dark:text-white mb-4">
                                     Compression Level
@@ -156,16 +148,18 @@ export default function CompressClient() {
                                             <button
                                                 key={level}
                                                 onClick={() => setCompressionLevel(level)}
-                                                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 ${isSelected
-                                                    ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
-                                                    : "border-surface-200 dark:border-surface-700 hover:border-surface-300"
-                                                    }`}
+                                                className={`w-full p-4 rounded-xl border-2 text-left transition-[border-color,background-color] flex items-center gap-4 ${
+                                                    isSelected
+                                                        ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
+                                                        : "border-surface-200 dark:border-surface-700 hover:border-surface-300"
+                                                }`}
                                             >
                                                 <div
-                                                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected
-                                                        ? "border-primary-500 bg-primary-500"
-                                                        : "border-surface-300 dark:border-surface-600"
-                                                        }`}
+                                                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                                                        isSelected
+                                                            ? "border-primary-500 bg-primary-500"
+                                                            : "border-surface-300 dark:border-surface-600"
+                                                    }`}
                                                 >
                                                     {isSelected && <Check className="w-4 h-4 text-white" />}
                                                 </div>
@@ -190,7 +184,6 @@ export default function CompressClient() {
                         </motion.div>
                     )}
 
-                    {/* Error Message */}
                     {error && (
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -201,21 +194,13 @@ export default function CompressClient() {
                         </motion.div>
                     )}
 
-                    {/* Progress */}
                     {isProcessing && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="space-y-2"
-                        >
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
                             <ProgressBar value={progress} />
-                            <p className="text-sm text-center text-surface-500">
-                                Compressing PDF...
-                            </p>
+                            <p className="text-sm text-center text-surface-500">{stage || "Compressing PDF..."}</p>
                         </motion.div>
                     )}
 
-                    {/* Action Buttons */}
                     {file && !isProcessing && (
                         <div className="flex justify-center gap-4">
                             <Button variant="secondary" onClick={handleReset}>
@@ -229,9 +214,7 @@ export default function CompressClient() {
                 </div>
             ) : (
                 <div className="space-y-6">
-                    {/* Compression Stats */}
                     <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-200 dark:border-surface-700">
-                        {/* Header Stats */}
                         <div className="flex flex-col items-center justify-center mb-8">
                             <motion.div
                                 initial={{ scale: 0.5, opacity: 0 }}
@@ -265,30 +248,25 @@ export default function CompressClient() {
                             )}
                         </div>
 
-                        {/* Visual Bar Comparison */}
                         <div className="mb-8 space-y-4">
                             <div className="relative h-12 bg-surface-100 dark:bg-surface-700 rounded-lg overflow-hidden flex items-center">
-                                {/* Compressed Bar (Green) */}
                                 <motion.div
                                     initial={{ width: "100%" }}
                                     animate={{ width: `${100 - compressionPercentage}%` }}
                                     transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
                                     className="absolute left-0 top-0 bottom-0 bg-green-500 z-10"
                                 />
-                                {/* Label inside bar */}
                                 <div className="absolute left-4 z-20 text-white font-medium text-sm whitespace-nowrap">
                                     Compressed: {formatFileSize(result.compressedSize)}
                                 </div>
                             </div>
 
-                            {/* Original Size Reference */}
                             <div className="flex justify-between text-sm text-surface-500 px-1">
                                 <span>0 MB</span>
                                 <span>Original: {formatFileSize(result.originalSize)}</span>
                             </div>
                         </div>
 
-                        {/* Detailed Stats Grid */}
                         <div className="grid grid-cols-2 gap-6 pt-6 border-t border-surface-200 dark:border-surface-700">
                             <div className="text-center">
                                 <p className="text-sm text-surface-500 mb-1">Old Size</p>
@@ -316,9 +294,14 @@ export default function CompressClient() {
                     />
 
                     <div className="text-center">
-                        <Button variant="secondary" onClick={handleReset}>
-                            Compress Another PDF
-                        </Button>
+                        <div className="flex justify-center gap-3">
+                            <Button variant="secondary" onClick={handleAdjust}>
+                                Try Different Settings
+                            </Button>
+                            <Button variant="secondary" onClick={handleReset}>
+                                Start Over
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )}

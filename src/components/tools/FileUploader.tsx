@@ -120,6 +120,7 @@ export function FileUploader({
                                     "w-8 h-8",
                                     isDragActive ? "text-primary-500" : "text-surface-400"
                                 )}
+                                aria-hidden="true"
                             />
                         ) : (
                             <ImageIcon
@@ -127,6 +128,7 @@ export function FileUploader({
                                     "w-8 h-8",
                                     isDragActive ? "text-primary-500" : "text-surface-400"
                                 )}
+                                aria-hidden="true"
                             />
                         )}
                     </div>
@@ -145,7 +147,7 @@ export function FileUploader({
                         type="button"
                         className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
                     >
-                        <Upload className="w-4 h-4" />
+                        <Upload className="w-4 h-4" aria-hidden="true" />
                         Select Files
                     </button>
                 </div>
@@ -160,7 +162,7 @@ export function FileUploader({
                         exit={{ opacity: 0, y: -10 }}
                         className="mt-3 flex items-center gap-2 text-red-500 text-sm"
                     >
-                        <AlertCircle className="w-4 h-4" />
+                        <AlertCircle className="w-4 h-4" aria-hidden="true" />
                         {error}
                     </motion.div>
                 )}
@@ -195,7 +197,7 @@ export function FileUploader({
                                     />
                                 ) : (
                                     <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-                                        <FileText className="w-6 h-6 text-red-500" />
+                                        <FileText className="w-6 h-6 text-red-500" aria-hidden="true" />
                                     </div>
                                 )}
                                 <div className="flex-1 min-w-0">

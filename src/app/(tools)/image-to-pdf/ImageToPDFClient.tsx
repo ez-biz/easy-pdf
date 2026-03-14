@@ -182,7 +182,7 @@ export default function ImageToPDFClient() {
                                             {index + 1}
                                         </div>
                                         {/* Controls */}
-                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                                             {index > 0 && (
                                                 <button
                                                     type="button"
@@ -240,7 +240,7 @@ export default function ImageToPDFClient() {
                                             key={option.id}
                                             type="button"
                                             onClick={() => setPageSize(option.id)}
-                                            className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-all ${pageSize === option.id
+                                            className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-[border-color,background-color] ${pageSize === option.id
                                                 ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
                                                 : "border-surface-200 dark:border-surface-700"
                                                 }`}
@@ -279,7 +279,7 @@ export default function ImageToPDFClient() {
                                             key={option.id}
                                             type="button"
                                             onClick={() => setOrientation(option.id)}
-                                            className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-all ${orientation === option.id
+                                            className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-[border-color,background-color] ${orientation === option.id
                                                 ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
                                                 : "border-surface-200 dark:border-surface-700"
                                                 }`}
@@ -318,7 +318,7 @@ export default function ImageToPDFClient() {
                                             key={option.id}
                                             type="button"
                                             onClick={() => setMargin(option.id)}
-                                            className={`flex-1 p-3 rounded-xl border-2 text-center transition-all ${margin === option.id
+                                            className={`flex-1 p-3 rounded-xl border-2 text-center transition-[border-color,background-color] ${margin === option.id
                                                 ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
                                                 : "border-surface-200 dark:border-surface-700"
                                                 }`}
@@ -339,7 +339,7 @@ export default function ImageToPDFClient() {
                                 <button
                                     type="button"
                                     onClick={() => setFitToPage(!fitToPage)}
-                                    className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-all ${fitToPage
+                                    className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-[border-color,background-color] ${fitToPage
                                         ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
                                         : "border-surface-200 dark:border-surface-700"
                                         }`}

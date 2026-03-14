@@ -14,7 +14,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
                 "bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 shadow-card",
             glass: "glass-card",
             hover:
-                "bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300",
+                "bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-[box-shadow,transform] duration-300",
         };
 
         return (

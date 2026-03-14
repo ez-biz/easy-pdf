@@ -44,7 +44,7 @@ export function DownloadButton({
             {isReady ? (
                 <>
                     <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                        <CheckCircle className="w-8 h-8 text-green-500" />
+                        <CheckCircle className="w-8 h-8 text-green-500" aria-hidden="true" />
                     </div>
                     <div className="text-center">
                         <h3 className="text-lg font-semibold text-surface-900 dark:text-white mb-1">
@@ -62,11 +62,11 @@ export function DownloadButton({
             ) : isLoading ? (
                 <>
                     <div className="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                        <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+                        <Loader2 className="w-8 h-8 text-primary-500 animate-spin" aria-hidden="true" />
                     </div>
                     <div className="text-center">
                         <h3 className="text-lg font-semibold text-surface-900 dark:text-white mb-1">
-                            Processing...
+                            Processing\u2026
                         </h3>
                         <p className="text-sm text-surface-500 dark:text-surface-400">
                             Please wait while we process your file

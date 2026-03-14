@@ -25,6 +25,9 @@ import {
     Unlock,
     Minimize2,
     Wrench,
+    Presentation,
+    ScanText,
+    Camera,
     LucideIcon,
 } from "lucide-react";
 import { TOOLS, TOOL_CATEGORIES } from "@/lib/constants";
@@ -52,6 +55,9 @@ const iconMap: { [key: string]: LucideIcon } = {
     Unlock,
     Minimize2,
     Wrench,
+    Presentation,
+    ScanText,
+    Camera,
 };
 
 export function ToolsGrid() {
@@ -81,7 +87,7 @@ export function ToolsGrid() {
                 <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
                     <button
                         onClick={() => setActiveCategory("all")}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeCategory === "all"
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-[background-color,color,box-shadow] ${activeCategory === "all"
                             ? "bg-primary-500 text-white shadow-lg shadow-primary-500/25"
                             : "bg-white dark:bg-surface-800 text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700"
                             }`}
@@ -92,7 +98,7 @@ export function ToolsGrid() {
                         <button
                             key={category.id}
                             onClick={() => setActiveCategory(category.id)}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeCategory === category.id
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-[background-color,color,box-shadow] ${activeCategory === category.id
                                 ? "bg-primary-500 text-white shadow-lg shadow-primary-500/25"
                                 : "bg-white dark:bg-surface-800 text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700"
                                 }`}
@@ -128,7 +134,7 @@ export function ToolsGrid() {
                                     <div
                                         className={`w-14 h-14 rounded-xl bg-gradient-to-br ${tool.color} flex items-center justify-center text-white mb-4 shadow-lg group-hover:scale-110 transition-transform`}
                                     >
-                                        <IconComponent className="w-7 h-7" />
+                                        <IconComponent className="w-7 h-7" aria-hidden="true" />
                                     </div>
 
                                     {/* Content */}
@@ -157,6 +163,7 @@ export function ToolsGrid() {
                                                 fill="none"
                                                 stroke="currentColor"
                                                 viewBox="0 0 24 24"
+                                                aria-hidden="true"
                                             >
                                                 <path
                                                     strokeLinecap="round"

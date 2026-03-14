@@ -32,15 +32,20 @@ export function ProgressBar({
                     "w-full bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden",
                     sizes[size]
                 )}
+                role="progressbar"
+                aria-valuenow={Math.round(percentage)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`Progress: ${Math.round(percentage)}%`}
             >
                 <div
-                    className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full transition-all duration-500 ease-out"
+                    className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full transition-[width] duration-500 ease-out"
                     style={{ width: `${percentage}%` }}
                 />
             </div>
             {showLabel && (
                 <div className="flex justify-between mt-1.5">
-                    <span className="text-xs text-surface-500 dark:text-surface-400">
+                    <span className="text-xs text-surface-500 dark:text-surface-400 tabular-nums">
                         {Math.round(percentage)}%
                     </span>
                 </div>

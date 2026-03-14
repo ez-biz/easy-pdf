@@ -165,7 +165,7 @@ export default function ProtectClient() {
                                             <div className="mt-2">
                                                 <div className="h-1.5 bg-surface-200 dark:bg-surface-600 rounded-full overflow-hidden">
                                                     <div
-                                                        className={`h-full ${strength.color} transition-all`}
+                                                        className={`h-full ${strength.color} transition-[width]`}
                                                         style={{ width: strength.width }}
                                                     />
                                                 </div>
