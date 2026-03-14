@@ -162,7 +162,7 @@ export function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
                     <button
                         key={c.val}
                         onClick={() => setColor(c.val)}
-                        className={`w-8 h-8 rounded-full ${c.bg} transition-all ${color === c.val
+                        className={`w-8 h-8 rounded-full ${c.bg} transition-[border-color,box-shadow] ${color === c.val
                                 ? "ring-2 ring-offset-2 ring-primary-500 dark:ring-offset-surface-800 scale-110"
                                 : "hover:scale-105 opacity-80 hover:opacity-100"
                             }`}

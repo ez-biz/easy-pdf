@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Github, Twitter, Send } from "lucide-react";
+import { Mail, Github, Twitter, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export default function ContactPage() {
@@ -12,16 +12,64 @@ export default function ContactPage() {
         message: "",
     });
     const [submitted, setSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // In a real application, you would send this to a backend
-        console.log("Form submitted:", formData);
-        setSubmitted(true);
-        setTimeout(() => {
-            setSubmitted(false);
+        setError(null);
+
+        const formspreeId = process.env.NEXT_PUBLIC_FORMSPREE_ID;
+
+        if (!formspreeId) {
+            const subject = encodeURIComponent(formData.subject);
+            const body = encodeURIComponent(
+                `Name: ${formData.name}\nEmail: ${formData.email}\n\n${formData.message}`
+            );
+            window.location.href = `mailto:support@easypdf.com?subject=${subject}&body=${body}`;
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            const response = await fetch(`https://formspree.io/f/${formspreeId}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                body: JSON.stringify({
+                    name: formData.name,
+                    email: formData.email,
+                    subject: formData.subject,
+                    message: formData.message,
+                }),
+            });
+
+            if (!response.ok) {
+                const data = await response.json().catch(() => null);
+                throw new Error(
+                    data?.errors
+                        ?.map((err: { message: string }) => err.message)
+                        .join(", ") || "Failed to send message. Please try again."
+                );
+            }
+
+            setSubmitted(true);
             setFormData({ name: "", email: "", subject: "", message: "" });
-        }, 3000);
+            setTimeout(() => {
+                setSubmitted(false);
+            }, 5000);
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Something went wrong. Please try again."
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -62,6 +110,12 @@ export default function ContactPage() {
                                 </div>
                             ) : (
                                 <form onSubmit={handleSubmit} className="space-y-6">
+                                    {error && (
+                                        <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
+                                            {error}
+                                        </div>
+                                    )}
+
                                     <div className="grid md:grid-cols-2 gap-6">
                                         <div>
                                             <label
@@ -77,7 +131,8 @@ export default function ContactPage() {
                                                 value={formData.name}
                                                 onChange={handleChange}
                                                 required
-                                                className="w-full px-4 py-3 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                                disabled={isSubmitting}
+                                                className="w-full px-4 py-3 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
                                                 placeholder="John Doe"
                                             />
                                         </div>
@@ -95,7 +150,8 @@ export default function ContactPage() {
                                                 value={formData.email}
                                                 onChange={handleChange}
                                                 required
-                                                className="w-full px-4 py-3 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                                disabled={isSubmitting}
+                                                className="w-full px-4 py-3 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
                                                 placeholder="john@example.com"
                                             />
                                         </div>
@@ -115,7 +171,8 @@ export default function ContactPage() {
                                             value={formData.subject}
                                             onChange={handleChange}
                                             required
-                                            className="w-full px-4 py-3 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                            disabled={isSubmitting}
+                                            className="w-full px-4 py-3 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
                                             placeholder="How can we help?"
                                         />
                                     </div>
@@ -133,14 +190,27 @@ export default function ContactPage() {
                                             value={formData.message}
                                             onChange={handleChange}
                                             required
+                                            disabled={isSubmitting}
                                             rows={6}
-                                            className="w-full px-4 py-3 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                                            className="w-full px-4 py-3 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl text-surface-900 dark:text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none disabled:opacity-50"
                                             placeholder="Tell us more about your question or feedback..."
                                         />
                                     </div>
 
-                                    <Button type="submit" size="lg" className="w-full" leftIcon={<Send className="w-4 h-4" />}>
-                                        Send Message
+                                    <Button
+                                        type="submit"
+                                        size="lg"
+                                        className="w-full"
+                                        disabled={isSubmitting}
+                                        leftIcon={
+                                            isSubmitting ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <Send className="w-4 h-4" />
+                                            )
+                                        }
+                                    >
+                                        {isSubmitting ? "Sending..." : "Send Message"}
                                     </Button>
                                 </form>
                             )}
@@ -177,7 +247,7 @@ export default function ContactPage() {
                             </h3>
                             <div className="space-y-3">
                                 <a
-                                    href="https://github.com/yourusername/easypdf"
+                                    href="https://github.com/ez-biz/easy-pdf"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-3 text-surface-600 dark:text-surface-300 hover:text-primary-600 transition-colors"

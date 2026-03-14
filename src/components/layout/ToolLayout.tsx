@@ -29,7 +29,7 @@ export function ToolLayout({
                         href="/"
                         className="inline-flex items-center gap-2 text-sm text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 mb-6 transition-colors"
                     >
-                        <ArrowLeft className="w-4 h-4" />
+                        <ArrowLeft className="w-4 h-4" aria-hidden="true" />
                         Back to all tools
                     </Link>
 
@@ -39,7 +39,7 @@ export function ToolLayout({
                             animate={{ scale: 1, opacity: 1 }}
                             className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center text-white shadow-lg`}
                         >
-                            <Icon className="w-8 h-8" />
+                            <Icon className="w-8 h-8" aria-hidden="true" />
                         </motion.div>
                         <div>
                             <motion.h1

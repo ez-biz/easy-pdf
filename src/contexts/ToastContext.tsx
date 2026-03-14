@@ -70,6 +70,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <div
                 className="fixed z-50 flex flex-col-reverse gap-2 pointer-events-none items-center"
                 style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)' }}
+                role="status"
+                aria-live="polite"
+                aria-atomic="false"
             >
                 <AnimatePresence>
                     {toasts.map((toast) => (

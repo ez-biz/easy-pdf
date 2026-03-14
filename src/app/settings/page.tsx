@@ -188,7 +188,7 @@ export default function SettingsPage() {
                                                         </span>
                                                         <button
                                                             onClick={() => removeActivity(activity.id)}
-                                                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-surface-400 hover:text-red-600 dark:hover:text-red-400 transition-all"
+                                                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-surface-400 hover:text-red-600 dark:hover:text-red-400 transition-[opacity,color,background-color]"
                                                             title="Remove this item"
                                                         >
                                                             <Trash2 className="w-4 h-4" />

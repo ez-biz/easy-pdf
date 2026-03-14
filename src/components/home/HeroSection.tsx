@@ -21,7 +21,7 @@ export function HeroSection() {
                         transition={{ duration: 0.5 }}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-sm font-medium mb-6"
                     >
-                        <Sparkles className="w-4 h-4" />
+                        <Sparkles className="w-4 h-4" aria-hidden="true" />
                         <span>100% Free · No Registration Required</span>
                     </motion.div>
 
@@ -30,7 +30,7 @@ export function HeroSection() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
-                        className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6"
+                        className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-balance"
                     >
                         Every tool you need to work with{" "}
                         <span className="text-gradient">PDFs</span>
@@ -56,7 +56,7 @@ export function HeroSection() {
                     >
                         <Link href="#all-tools" className="btn-primary text-lg px-8 py-4">
                             Explore All Tools
-                            <ArrowRight className="w-5 h-5" />
+                            <ArrowRight className="w-5 h-5" aria-hidden="true" />
                         </Link>
                         <Link href="/merge-pdf" className="btn-secondary text-lg px-8 py-4">
                             Start with Merge PDF
@@ -79,7 +79,7 @@ export function HeroSection() {
                                 key={index}
                                 className="flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-surface-800 shadow-card text-sm font-medium text-surface-700 dark:text-surface-200"
                             >
-                                <feature.icon className="w-4 h-4 text-primary-500" />
+                                <feature.icon className="w-4 h-4 text-primary-500" aria-hidden="true" />
                                 {feature.text}
                             </div>
                         ))}
@@ -89,17 +89,17 @@ export function HeroSection() {
                 {/* Floating PDF Icons */}
                 <div className="absolute top-1/4 left-10 hidden lg:block animate-float" style={{ animationDelay: "-1s" }}>
                     <div className="w-16 h-20 bg-white dark:bg-surface-800 rounded-lg shadow-card flex items-center justify-center border border-surface-200 dark:border-surface-700 rotate-[-15deg]">
-                        <FileText className="w-8 h-8 text-red-500" />
+                        <FileText className="w-8 h-8 text-red-500" aria-hidden="true" />
                     </div>
                 </div>
                 <div className="absolute top-1/3 right-16 hidden lg:block animate-float" style={{ animationDelay: "-2s" }}>
                     <div className="w-14 h-18 bg-white dark:bg-surface-800 rounded-lg shadow-card flex items-center justify-center border border-surface-200 dark:border-surface-700 rotate-[12deg]">
-                        <FileText className="w-7 h-7 text-primary-500" />
+                        <FileText className="w-7 h-7 text-primary-500" aria-hidden="true" />
                     </div>
                 </div>
                 <div className="absolute bottom-1/4 left-20 hidden lg:block animate-float" style={{ animationDelay: "-4s" }}>
                     <div className="w-12 h-16 bg-white dark:bg-surface-800 rounded-lg shadow-card flex items-center justify-center border border-surface-200 dark:border-surface-700 rotate-[8deg]">
-                        <FileText className="w-6 h-6 text-secondary-500" />
+                        <FileText className="w-6 h-6 text-secondary-500" aria-hidden="true" />
                     </div>
                 </div>
             </div>

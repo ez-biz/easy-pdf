@@ -30,6 +30,9 @@ import {
     Lock,
     Unlock,
     Wrench,
+    Presentation,
+    ScanText,
+    Camera,
 } from "lucide-react";
 import { TOOLS, TOOL_CATEGORIES } from "@/lib/constants";
 
@@ -65,6 +68,9 @@ export function Header() {
         Lock: <Lock className="w-4 h-4" aria-hidden="true" />,
         Unlock: <Unlock className="w-4 h-4" aria-hidden="true" />,
         Wrench: <Wrench className="w-4 h-4" aria-hidden="true" />,
+        Presentation: <Presentation className="w-4 h-4" aria-hidden="true" />,
+        ScanText: <ScanText className="w-4 h-4" aria-hidden="true" />,
+        Camera: <Camera className="w-4 h-4" aria-hidden="true" />,
     };
 
     // Lock body scroll when mobile menu is open
@@ -102,7 +108,17 @@ export function Header() {
                             >
                                 <button
                                     type="button"
-                                    className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                                    className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+                                    aria-expanded={activeDropdown === category.id}
+                                    aria-haspopup="true"
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setActiveDropdown(activeDropdown === category.id ? null : category.id);
+                                        } else if (e.key === "Escape") {
+                                            setActiveDropdown(null);
+                                        }
+                                    }}
                                 >
                                     {category.name}
                                     <ChevronDown

@@ -155,7 +155,7 @@ export default function AddWatermarkClient() {
                                             key={option.id}
                                             type="button"
                                             onClick={() => setPosition(option.id)}
-                                            className={`p-2 rounded-lg border-2 text-sm font-medium transition-all ${position === option.id
+                                            className={`p-2 rounded-lg border-2 text-sm font-medium transition-[border-color,background-color] ${position === option.id
                                                 ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400"
                                                 : "border-surface-200 dark:border-surface-600 text-surface-600 dark:text-surface-300"
                                                 }`}
@@ -177,7 +177,7 @@ export default function AddWatermarkClient() {
                                             key={option.value}
                                             type="button"
                                             onClick={() => setFontSize(option.value)}
-                                            className={`flex-1 p-2 rounded-lg border-2 text-sm font-medium transition-all ${fontSize === option.value
+                                            className={`flex-1 p-2 rounded-lg border-2 text-sm font-medium transition-[border-color,background-color] ${fontSize === option.value
                                                 ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
                                                 : "border-surface-200 dark:border-surface-600"
                                                 }`}

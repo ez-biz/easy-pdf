@@ -195,7 +195,7 @@ export default function RemovePagesClient() {
                                         key={page.index}
                                         type="button"
                                         onClick={() => togglePage(page.index)}
-                                        className={`relative aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all ${page.selected
+                                        className={`relative aspect-[3/4] rounded-lg overflow-hidden border-2 transition-[border-color,box-shadow] ${page.selected
                                             ? "border-red-500 ring-2 ring-red-500/30"
                                             : "border-surface-200 dark:border-surface-600 hover:border-surface-400"
                                             }`}

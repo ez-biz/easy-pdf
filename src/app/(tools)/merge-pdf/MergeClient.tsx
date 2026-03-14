@@ -9,18 +9,15 @@ import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
-import { mergePDFs } from "@/lib/pdf/merge";
 import { downloadBlob, formatFileSize, createPdfBlob } from "@/lib/utils";
 import { useToast } from "@/contexts/ToastContext";
+import { usePDFWorker } from "@/hooks/usePDFWorker";
 
 export default function MergeClient() {
     const [files, setFiles] = useState<FileWithPreview[]>([]);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [result, setResult] = useState<{ blob: Blob; pageCount: number } | null>(
-        null
-    );
+    const [result, setResult] = useState<{ blob: Blob; pageCount: number } | null>(null);
     const toast = useToast();
+    const { process, progress, stage, isProcessing, resetProgress } = usePDFWorker();
 
     const handleFilesChange = useCallback((newFiles: FileWithPreview[]) => {
         setFiles(newFiles);
@@ -48,31 +45,19 @@ export default function MergeClient() {
             return;
         }
 
-        setIsProcessing(true);
-        setProgress(0);
-
         try {
-            const progressInterval = setInterval(() => {
-                setProgress((prev) => Math.min(prev + 10, 90));
-            }, 200);
+            const actualFiles = files.map((f) => f.file);
+            const workerResult = await process({
+                operation: "merge",
+                files: actualFiles,
+            });
 
-            const actualFiles = files.map(f => f.file);
-            const mergeResult = await mergePDFs(actualFiles);
-
-            clearInterval(progressInterval);
-            setProgress(100);
-
-            if (mergeResult.success && mergeResult.data) {
-                const blob = createPdfBlob(mergeResult.data);
-                setResult({ blob, pageCount: mergeResult.pageCount || 0 });
-                toast.success(`Successfully merged ${files.length} PDFs!`);
-            } else {
-                toast.error(mergeResult.error || "Failed to merge PDFs");
-            }
+            const blob = createPdfBlob(new Uint8Array(workerResult.data as ArrayBuffer));
+            const pageCount = (workerResult.details?.pageCount as number) || 0;
+            setResult({ blob, pageCount });
+            toast.success(`Successfully merged ${files.length} PDFs!`);
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "An error occurred");
-        } finally {
-            setIsProcessing(false);
         }
     };
 
@@ -86,7 +71,12 @@ export default function MergeClient() {
     const handleReset = () => {
         setFiles([]);
         setResult(null);
-        setProgress(0);
+        resetProgress();
+    };
+
+    const handleAdjust = () => {
+        setResult(null);
+        resetProgress();
     };
 
     return (
@@ -98,7 +88,6 @@ export default function MergeClient() {
         >
             {!result ? (
                 <div className="space-y-6">
-                    {/* File Uploader */}
                     <FileUploader
                         accept={{ "application/pdf": [".pdf"] }}
                         multiple
@@ -108,7 +97,6 @@ export default function MergeClient() {
                         description="or click to browse"
                     />
 
-                    {/* File List */}
                     {files.length > 0 && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -119,9 +107,7 @@ export default function MergeClient() {
                                 <h3 className="font-semibold text-surface-900 dark:text-white">
                                     Files to merge ({files.length})
                                 </h3>
-                                <p className="text-sm text-surface-500">
-                                    Use arrows to reorder
-                                </p>
+                                <p className="text-sm text-surface-500">Use arrows to reorder</p>
                             </div>
 
                             <div className="space-y-2">
@@ -140,9 +126,7 @@ export default function MergeClient() {
                                             <p className="text-sm font-medium text-surface-900 dark:text-white truncate">
                                                 {file.name}
                                             </p>
-                                            <p className="text-xs text-surface-500">
-                                                {formatFileSize(file.size)}
-                                            </p>
+                                            <p className="text-xs text-surface-500">{formatFileSize(file.size)}</p>
                                         </div>
                                         <div className="flex items-center gap-1">
                                             {index > 0 && (
@@ -180,33 +164,19 @@ export default function MergeClient() {
                         </motion.div>
                     )}
 
-                    {/* Progress */}
                     {isProcessing && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="space-y-2"
-                        >
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
                             <ProgressBar value={progress} />
-                            <p className="text-sm text-center text-surface-500">
-                                Merging PDFs...
-                            </p>
+                            <p className="text-sm text-center text-surface-500">{stage || "Merging PDFs..."}</p>
                         </motion.div>
                     )}
 
-                    {/* Action Buttons */}
                     {files.length >= 2 && !isProcessing && (
                         <div className="flex justify-center gap-4">
-                            <Button
-                                variant="secondary"
-                                onClick={handleReset}
-                            >
+                            <Button variant="secondary" onClick={handleReset}>
                                 Clear All
                             </Button>
-                            <Button
-                                onClick={handleMerge}
-                                size="lg"
-                            >
+                            <Button onClick={handleMerge} size="lg">
                                 Merge {files.length} PDFs
                             </Button>
                         </div>
@@ -224,9 +194,14 @@ export default function MergeClient() {
                         <p className="text-sm text-surface-500 mb-4">
                             {result.pageCount} pages merged from {files.length} files
                         </p>
-                        <Button variant="secondary" onClick={handleReset}>
-                            Merge More PDFs
-                        </Button>
+                        <div className="flex justify-center gap-3">
+                            <Button variant="secondary" onClick={handleAdjust}>
+                                Adjust & Reorder
+                            </Button>
+                            <Button variant="secondary" onClick={handleReset}>
+                                Start Over
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )}

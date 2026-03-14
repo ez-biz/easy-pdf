@@ -95,6 +95,12 @@ export function Footer() {
                                 Terms of Service
                             </Link>
                             <Link
+                                href="/disclaimer"
+                                className="text-surface-400 hover:text-white transition-colors"
+                            >
+                                Disclaimer
+                            </Link>
+                            <Link
                                 href="/contact"
                                 className="text-surface-400 hover:text-white transition-colors"
                             >

@@ -2,19 +2,17 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import {
-    RotateCw,
-    RotateCcw,
-} from "lucide-react";
+import { RotateCw, RotateCcw } from "lucide-react";
 import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
-import { rotatePDF, RotationAngle } from "@/lib/pdf/rotate";
+import { RotationAngle } from "@/lib/pdf/rotate";
 import { getPDFThumbnails } from "@/lib/pdf/toImage";
 import { downloadBlob, createPdfBlob } from "@/lib/utils";
+import { usePDFWorker } from "@/hooks/usePDFWorker";
 import Image from "next/image";
 
 export default function RotateClient() {
@@ -22,10 +20,9 @@ export default function RotateClient() {
     const [thumbnails, setThumbnails] = useState<string[]>([]);
     const [rotations, setRotations] = useState<Map<number, RotationAngle>>(new Map());
     const [isLoadingThumbnails, setIsLoadingThumbnails] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [progress, setProgress] = useState(0);
     const [result, setResult] = useState<{ blob: Blob } | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const { process, progress, stage, isProcessing, resetProgress } = usePDFWorker();
 
     const file = files[0]?.file;
 
@@ -87,30 +84,22 @@ export default function RotateClient() {
             return;
         }
 
-        setIsProcessing(true);
-        setProgress(0);
         setError(null);
 
         try {
-            const progressInterval = setInterval(() => {
-                setProgress((prev) => Math.min(prev + 15, 90));
-            }, 200);
+            // Convert Map to array of [pageIndex, angle] pairs for the worker
+            const rotationPairs: [number, number][] = Array.from(rotations.entries());
 
-            const rotateResult = await rotatePDF(file, rotations);
+            const workerResult = await process({
+                operation: "rotate",
+                files: [file],
+                options: { rotations: rotationPairs },
+            });
 
-            clearInterval(progressInterval);
-            setProgress(100);
-
-            if (rotateResult.success && rotateResult.data) {
-                const blob = createPdfBlob(rotateResult.data);
-                setResult({ blob });
-            } else {
-                setError(rotateResult.error || "Failed to rotate PDF");
-            }
+            const blob = createPdfBlob(new Uint8Array(workerResult.data as ArrayBuffer));
+            setResult({ blob });
         } catch (err) {
             setError(err instanceof Error ? err.message : "An error occurred");
-        } finally {
-            setIsProcessing(false);
         }
     };
 
@@ -127,7 +116,13 @@ export default function RotateClient() {
         setRotations(new Map());
         setResult(null);
         setError(null);
-        setProgress(0);
+        resetProgress();
+    };
+
+    const handleAdjust = () => {
+        setResult(null);
+        setError(null);
+        resetProgress();
     };
 
     return (
@@ -139,7 +134,6 @@ export default function RotateClient() {
         >
             {!result ? (
                 <div className="space-y-6">
-                    {/* File Uploader */}
                     <FileUploader
                         accept={{ "application/pdf": [".pdf"] }}
                         multiple={false}
@@ -149,7 +143,6 @@ export default function RotateClient() {
                         label="Drop your PDF file here"
                     />
 
-                    {/* Quick Actions */}
                     {thumbnails.length > 0 && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -157,9 +150,7 @@ export default function RotateClient() {
                             className="bg-white dark:bg-surface-800 rounded-2xl p-4 border border-surface-200 dark:border-surface-700"
                         >
                             <div className="flex flex-wrap items-center justify-between gap-4">
-                                <p className="text-sm text-surface-600 dark:text-surface-300">
-                                    Quick actions:
-                                </p>
+                                <p className="text-sm text-surface-600 dark:text-surface-300">Quick actions:</p>
                                 <div className="flex gap-2">
                                     <Button
                                         variant="secondary"
@@ -169,11 +160,7 @@ export default function RotateClient() {
                                     >
                                         Rotate All 90°
                                     </Button>
-                                    <Button
-                                        variant="secondary"
-                                        size="sm"
-                                        onClick={() => rotateAllPages(180)}
-                                    >
+                                    <Button variant="secondary" size="sm" onClick={() => rotateAllPages(180)}>
                                         Rotate All 180°
                                     </Button>
                                     <Button
@@ -189,7 +176,6 @@ export default function RotateClient() {
                         </motion.div>
                     )}
 
-                    {/* Page Thumbnails */}
                     {isLoadingThumbnails && (
                         <div className="flex items-center justify-center py-12">
                             <div className="spinner border-primary-500" />
@@ -212,10 +198,11 @@ export default function RotateClient() {
                                     return (
                                         <div key={index} className="space-y-2">
                                             <div
-                                                className={`relative aspect-[3/4] rounded-xl overflow-hidden border-2 transition-all ${rotation !== 0
-                                                    ? "border-primary-500 ring-2 ring-primary-500/20"
-                                                    : "border-surface-200 dark:border-surface-700"
-                                                    }`}
+                                                className={`relative aspect-[3/4] rounded-xl overflow-hidden border-2 transition-[border-color,box-shadow] ${
+                                                    rotation !== 0
+                                                        ? "border-primary-500 ring-2 ring-primary-500/20"
+                                                        : "border-surface-200 dark:border-surface-700"
+                                                }`}
                                             >
                                                 <Image
                                                     src={thumb}
@@ -257,7 +244,6 @@ export default function RotateClient() {
                         </motion.div>
                     )}
 
-                    {/* Error Message */}
                     {error && (
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -268,31 +254,19 @@ export default function RotateClient() {
                         </motion.div>
                     )}
 
-                    {/* Progress */}
                     {isProcessing && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="space-y-2"
-                        >
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
                             <ProgressBar value={progress} />
-                            <p className="text-sm text-center text-surface-500">
-                                Rotating pages...
-                            </p>
+                            <p className="text-sm text-center text-surface-500">{stage || "Rotating pages..."}</p>
                         </motion.div>
                     )}
 
-                    {/* Action Buttons */}
                     {thumbnails.length > 0 && !isProcessing && (
                         <div className="flex justify-center gap-4">
                             <Button variant="secondary" onClick={handleReset}>
                                 Clear
                             </Button>
-                            <Button
-                                onClick={handleRotate}
-                                size="lg"
-                                disabled={rotations.size === 0}
-                            >
+                            <Button onClick={handleRotate} size="lg" disabled={rotations.size === 0}>
                                 Apply Rotation ({rotations.size} pages)
                             </Button>
                         </div>
@@ -307,12 +281,15 @@ export default function RotateClient() {
                         isReady
                     />
                     <div className="text-center">
-                        <p className="text-sm text-surface-500 mb-4">
-                            {rotations.size} pages rotated
-                        </p>
-                        <Button variant="secondary" onClick={handleReset}>
-                            Rotate Another PDF
-                        </Button>
+                        <p className="text-sm text-surface-500 mb-4">{rotations.size} pages rotated</p>
+                        <div className="flex justify-center gap-3">
+                            <Button variant="secondary" onClick={handleAdjust}>
+                                Adjust Rotations
+                            </Button>
+                            <Button variant="secondary" onClick={handleReset}>
+                                Start Over
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )}

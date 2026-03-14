@@ -5,7 +5,11 @@ import { Footer } from "@/components/layout/Footer";
 import { ToastProvider } from "@/contexts/ToastContext";
 
 export const viewport: Viewport = {
-    themeColor: "#6366f1",
+    themeColor: [
+        { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+        { media: "(prefers-color-scheme: dark)", color: "#171717" },
+    ],
+    colorScheme: "light dark",
 };
 
 export const metadata: Metadata = {
@@ -65,8 +69,8 @@ export const metadata: Metadata = {
 };
 
 import { GoogleAnalytics } from "@next/third-parties/google";
-
-// ... existing imports
+import { SentryInit } from "@/components/SentryInit";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function RootLayout({
     children,
@@ -75,12 +79,36 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en" suppressHydrationWarning>
+            <head>
+                <link
+                    rel="preconnect"
+                    href="https://fonts.googleapis.com"
+                />
+                <link
+                    rel="preconnect"
+                    href="https://fonts.gstatic.com"
+                    crossOrigin="anonymous"
+                />
+                <link
+                    rel="stylesheet"
+                    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+                />
+            </head>
             <body className="min-h-screen flex flex-col antialiased">
-                <ToastProvider>
-                    <Header />
-                    <main className="flex-1 pt-16">{children}</main>
-                    <Footer />
-                </ToastProvider>
+                <SentryInit />
+                <ErrorBoundary>
+                    <ToastProvider>
+                        <a
+                            href="#main-content"
+                            className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:px-4 focus:py-2 focus:bg-primary-500 focus:text-white focus:rounded-lg focus:text-sm focus:font-medium"
+                        >
+                            Skip to content
+                        </a>
+                        <Header />
+                        <main id="main-content" className="flex-1 pt-16">{children}</main>
+                        <Footer />
+                    </ToastProvider>
+                </ErrorBoundary>
             </body>
             <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || ""} />
         </html>

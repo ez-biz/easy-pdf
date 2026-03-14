@@ -94,7 +94,6 @@ export const TOOLS: Tool[] = [
         icon: "FileText",
         category: "convert",
         color: "from-blue-500 to-blue-600",
-        comingSoon: true,
     },
     {
         id: "pdf-to-word",
@@ -104,7 +103,6 @@ export const TOOLS: Tool[] = [
         icon: "FileType",
         category: "convert",
         color: "from-indigo-500 to-indigo-600",
-        comingSoon: true,
     },
     {
         id: "excel-to-pdf",
@@ -114,7 +112,6 @@ export const TOOLS: Tool[] = [
         icon: "Table",
         category: "convert",
         color: "from-green-500 to-green-600",
-        comingSoon: true,
     },
     {
         id: "pdf-to-excel",
@@ -124,7 +121,33 @@ export const TOOLS: Tool[] = [
         icon: "Sheet",
         category: "convert",
         color: "from-emerald-500 to-emerald-600",
-        comingSoon: true,
+    },
+    {
+        id: "pdf-to-pptx",
+        name: "PDF to PowerPoint",
+        description: "Convert PDF to PowerPoint presentations",
+        href: "/pdf-to-pptx",
+        icon: "Presentation",
+        category: "convert",
+        color: "from-orange-500 to-orange-600",
+    },
+    {
+        id: "photo-to-pdf",
+        name: "Photo to PDF",
+        description: "Convert photos into a PDF album with layouts",
+        href: "/photo-to-pdf",
+        icon: "Camera",
+        category: "convert",
+        color: "from-pink-500 to-rose-600",
+    },
+    {
+        id: "ocr-pdf",
+        name: "OCR PDF",
+        description: "Extract text from scanned PDFs using OCR",
+        href: "/ocr-pdf",
+        icon: "ScanText",
+        category: "convert",
+        color: "from-violet-500 to-violet-600",
     },
 
     // Edit
@@ -300,4 +323,19 @@ export const IMAGE_FORMATS = [
     { value: "jpg", label: "JPG" },
     { value: "png", label: "PNG" },
     { value: "webp", label: "WEBP" },
+];
+
+export const SUPPORTED_WORD_TYPES = [
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
+];
+
+export const SUPPORTED_EXCEL_TYPES = [
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+];
+
+export const SUPPORTED_PPTX_TYPES = [
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/vnd.ms-powerpoint",
 ];

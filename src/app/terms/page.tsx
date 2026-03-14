@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FileText } from "lucide-react";
 
 export default function TermsPage() {
@@ -143,9 +144,9 @@ export default function TermsPage() {
                         </h2>
                         <p className="text-surface-600 dark:text-surface-300 leading-relaxed">
                             If you have any questions about these Terms, please contact us through our{" "}
-                            <a href="/contact" className="text-primary-600 hover:text-primary-700 underline">
+                            <Link href="/contact" className="text-primary-600 hover:text-primary-700 underline">
                                 Contact page
-                            </a>.
+                            </Link>.
                         </p>
                     </section>
                 </div>

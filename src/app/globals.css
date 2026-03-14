@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Font loaded via <link> in layout.tsx for better performance */
 
 :root {
   --background: 210 20% 98%;
@@ -93,11 +93,11 @@ body {
   }
 
   .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover;
+    @apply transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-card-hover;
   }
 
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-surface-900;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-surface-900;
   }
 
   .animate-in {
@@ -146,7 +146,7 @@ body {
 
 /* File Drop Zone */
 .drop-zone {
-  @apply relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-2xl p-8 transition-all duration-300;
+  @apply relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-2xl p-8 transition-[border-color,background-color,box-shadow] duration-300;
 }
 
 .drop-zone:hover,
@@ -160,7 +160,7 @@ body {
 
 /* Tool Cards */
 .tool-card {
-  @apply bg-white dark:bg-surface-800 rounded-2xl p-6 shadow-card transition-all duration-300 border border-surface-100 dark:border-surface-700;
+  @apply bg-white dark:bg-surface-800 rounded-2xl p-6 shadow-card transition-[transform,box-shadow,border-color] duration-300 border border-surface-100 dark:border-surface-700;
 }
 
 .tool-card:hover {
@@ -169,7 +169,7 @@ body {
 
 /* Buttons */
 .btn {
-  @apply inline-flex items-center justify-center gap-2 px-6 py-3 font-medium rounded-xl transition-all duration-200 focus-ring disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 font-medium rounded-xl transition-[background-color,color,box-shadow,transform] duration-200 focus-ring disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 .btn-primary {
@@ -194,7 +194,7 @@ body {
 }
 
 .progress-bar-fill {
-  @apply h-full bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full transition-all duration-500 ease-out;
+  @apply h-full bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full transition-[width] duration-500 ease-out;
 }
 
 /* Loading Spinner */
@@ -217,4 +217,21 @@ body {
 
 .toast-info {
   @apply toast bg-secondary-500/90 text-white;
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Tabular numbers for data displays */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
