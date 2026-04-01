@@ -8,33 +8,11 @@ import {
     X,
     ChevronDown,
     FileText,
-    Layers,
-    Scissors,
-    Image as ImageIcon,
-    Minimize2,
-    RotateCw,
     Moon,
     Sun,
-    LayoutGrid,
-    FileImage,
-    FileType,
-    Table,
-    Sheet,
-    Droplets,
-    Hash,
-    Trash2,
-    FileOutput,
-    Type,
-    PenTool,
-    Edit3,
-    Lock,
-    Unlock,
-    Wrench,
-    Presentation,
-    ScanText,
-    Camera,
 } from "lucide-react";
 import { TOOLS, TOOL_CATEGORIES } from "@/lib/constants";
+import { getToolIcon } from "@/lib/icons";
 
 export function Header() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -44,33 +22,6 @@ export function Header() {
     const toggleDarkMode = () => {
         setIsDark(!isDark);
         document.documentElement.classList.toggle("dark");
-    };
-
-    const iconMap: { [key: string]: React.ReactNode } = {
-        Layers: <Layers className="w-4 h-4" aria-hidden="true" />,
-        Scissors: <Scissors className="w-4 h-4" aria-hidden="true" />,
-        Image: <ImageIcon className="w-4 h-4" aria-hidden="true" />,
-        Minimize2: <Minimize2 className="w-4 h-4" aria-hidden="true" />,
-        RotateCw: <RotateCw className="w-4 h-4" aria-hidden="true" />,
-        FileText: <FileText className="w-4 h-4" aria-hidden="true" />,
-        LayoutGrid: <LayoutGrid className="w-4 h-4" aria-hidden="true" />,
-        FileImage: <FileImage className="w-4 h-4" aria-hidden="true" />,
-        FileType: <FileType className="w-4 h-4" aria-hidden="true" />,
-        Table: <Table className="w-4 h-4" aria-hidden="true" />,
-        Sheet: <Sheet className="w-4 h-4" aria-hidden="true" />,
-        Droplets: <Droplets className="w-4 h-4" aria-hidden="true" />,
-        Hash: <Hash className="w-4 h-4" aria-hidden="true" />,
-        Trash2: <Trash2 className="w-4 h-4" aria-hidden="true" />,
-        FileOutput: <FileOutput className="w-4 h-4" aria-hidden="true" />,
-        Type: <Type className="w-4 h-4" aria-hidden="true" />,
-        PenTool: <PenTool className="w-4 h-4" aria-hidden="true" />,
-        Edit3: <Edit3 className="w-4 h-4" aria-hidden="true" />,
-        Lock: <Lock className="w-4 h-4" aria-hidden="true" />,
-        Unlock: <Unlock className="w-4 h-4" aria-hidden="true" />,
-        Wrench: <Wrench className="w-4 h-4" aria-hidden="true" />,
-        Presentation: <Presentation className="w-4 h-4" aria-hidden="true" />,
-        ScanText: <ScanText className="w-4 h-4" aria-hidden="true" />,
-        Camera: <Camera className="w-4 h-4" aria-hidden="true" />,
     };
 
     // Lock body scroll when mobile menu is open
@@ -149,9 +100,7 @@ export function Header() {
                                                                 <div
                                                                     className={`w-10 h-10 rounded-lg bg-gradient-to-br ${tool.color} flex items-center justify-center text-white flex-shrink-0`}
                                                                 >
-                                                                    {iconMap[tool.icon] || (
-                                                                        <FileText className="w-4 h-4" aria-hidden="true" />
-                                                                    )}
+                                                                    {(() => { const Icon = getToolIcon(tool.icon); return <Icon className="w-4 h-4" aria-hidden="true" />; })()}
                                                                 </div>
                                                                 <div>
                                                                     <div className="flex items-center gap-2">
@@ -175,9 +124,7 @@ export function Header() {
                                                                 <div
                                                                     className={`w-10 h-10 rounded-lg bg-gradient-to-br ${tool.color} flex items-center justify-center text-white flex-shrink-0`}
                                                                 >
-                                                                    {iconMap[tool.icon] || (
-                                                                        <FileText className="w-4 h-4" aria-hidden="true" />
-                                                                    )}
+                                                                    {(() => { const Icon = getToolIcon(tool.icon); return <Icon className="w-4 h-4" aria-hidden="true" />; })()}
                                                                 </div>
                                                                 <div>
                                                                     <span className="font-medium text-surface-900 dark:text-white">

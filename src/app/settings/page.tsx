@@ -1,16 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, BarChart3, Clock, Trash2, Save, Moon, Sun } from "lucide-react";
+import { Settings as SettingsIcon, BarChart3, Clock, Trash2, Save, ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { useAppStore } from "@/store/useAppStore";
 import { Button } from "@/components/ui/Button";
 import { TOOLS } from "@/lib/constants";
+import { getToolIcon } from "@/lib/icons";
 
 export default function SettingsPage() {
     const {
         settings,
         updateSettings,
-        toggleDarkMode,
         recentActivity,
         removeActivity,
         clearActivity,
@@ -71,9 +72,16 @@ export default function SettingsPage() {
             {/* Header */}
             <div className="bg-white dark:bg-surface-900 border-b border-surface-200 dark:border-surface-800">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-2 text-sm text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 mb-4 transition-colors"
+                    >
+                        <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                        Back to all tools
+                    </Link>
                     <div className="flex items-center gap-3">
                         <div className="p-3 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl">
-                            <SettingsIcon className="w-6 h-6 text-white" />
+                            <SettingsIcon className="w-6 h-6 text-white" aria-hidden="true" />
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-surface-900 dark:text-white">
@@ -171,9 +179,14 @@ export default function SettingsPage() {
                                                     key={activity.id}
                                                     className="group flex items-start gap-4 p-4 rounded-lg bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors relative"
                                                 >
-                                                    <div className={`p-2 rounded-lg bg-gradient-to-br ${tool?.color || 'from-gray-500 to-gray-600'} flex-shrink-0`}>
-                                                        <div className="w-5 h-5 bg-white/20 rounded" />
-                                                    </div>
+                                                    {(() => {
+                                                        const Icon = getToolIcon(tool?.icon || "FileText");
+                                                        return (
+                                                            <div className={`p-2 rounded-lg bg-gradient-to-br ${tool?.color || 'from-gray-500 to-gray-600'} flex-shrink-0`}>
+                                                                <Icon className="w-5 h-5 text-white" aria-hidden="true" />
+                                                            </div>
+                                                        );
+                                                    })()}
                                                     <div className="flex-1 min-w-0">
                                                         <p className="font-medium text-surface-900 dark:text-white">
                                                             {activity.toolName}
@@ -205,35 +218,6 @@ export default function SettingsPage() {
 
                     {/* Right Column - Settings */}
                     <div className="space-y-6">
-
-                        {/* Appearance */}
-                        <div className="bg-white dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-800 shadow-sm">
-                            <div className="p-6 border-b border-surface-200 dark:border-surface-800">
-                                <h2 className="text-lg font-semibold text-surface-900 dark:text-white">
-                                    Appearance
-                                </h2>
-                            </div>
-                            <div className="p-6">
-                                <button
-                                    onClick={toggleDarkMode}
-                                    className="w-full flex items-center justify-between p-4 rounded-lg border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
-                                >
-                                    <div>
-                                        <span className="font-medium text-surface-900 dark:text-white block">
-                                            Theme
-                                        </span>
-                                        <span className="text-sm font-medium text-surface-700 dark:text-surface-300">
-                                            {settings.isDarkMode ? 'Dark Mode' : 'Light Mode'}
-                                        </span>
-                                    </div>
-                                    {settings.isDarkMode ? (
-                                        <Moon className="w-5 h-5 text-primary-500" />
-                                    ) : (
-                                        <Sun className="w-5 h-5 text-amber-500" />
-                                    )}
-                                </button>
-                            </div>
-                        </div>
 
                         {/* Preferences */}
                         <div className="bg-white dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-800 shadow-sm">
