@@ -67,9 +67,15 @@ export async function pdfToImages(
 
             const quality = format === "png" ? undefined : 0.92;
 
-            const blob = await new Promise<Blob>((resolve) => {
+            const blob = await new Promise<Blob>((resolve, reject) => {
                 canvas.toBlob(
-                    (blob) => resolve(blob!),
+                    (blob) => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            reject(new Error(`Failed to convert page ${pageNum} to ${format}`));
+                        }
+                    },
                     mimeType,
                     quality
                 );

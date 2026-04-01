@@ -74,8 +74,7 @@ export async function protectPDF(
  */
 export async function unlockPDF(
     pdfFile: File,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _password: string
+    password: string
 ): Promise<UnlockResult> {
     try {
         const arrayBuffer = await pdfFile.arrayBuffer();
@@ -84,7 +83,7 @@ export async function unlockPDF(
         // @cantoo/pdf-lib uses ignoreEncryption or password in the options
         const pdfDoc = await PDFDocument.load(arrayBuffer, {
             ignoreEncryption: true,
-            password: _password,
+            password: password,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
