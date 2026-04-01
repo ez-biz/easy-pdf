@@ -105,19 +105,19 @@ export function FileUploader({
                 )}
             >
                 <input {...getInputProps()} />
-                <div className="flex flex-col items-center justify-center py-8">
+                <div className="flex flex-col items-center justify-center py-10">
                     <div
                         className={cn(
-                            "w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-colors",
+                            "w-20 h-20 rounded-2xl flex items-center justify-center mb-5 transition-all duration-300",
                             isDragActive
-                                ? "bg-primary-100 dark:bg-primary-900/30"
+                                ? "bg-primary-100 dark:bg-primary-900/30 scale-110 shadow-glow"
                                 : "bg-surface-100 dark:bg-surface-800"
                         )}
                     >
                         {isPdf ? (
                             <FileText
                                 className={cn(
-                                    "w-8 h-8",
+                                    "w-10 h-10 transition-colors",
                                     isDragActive ? "text-primary-500" : "text-surface-400"
                                 )}
                                 aria-hidden="true"
@@ -125,7 +125,7 @@ export function FileUploader({
                         ) : (
                             <ImageIcon
                                 className={cn(
-                                    "w-8 h-8",
+                                    "w-10 h-10 transition-colors",
                                     isDragActive ? "text-primary-500" : "text-surface-400"
                                 )}
                                 aria-hidden="true"
@@ -133,23 +133,23 @@ export function FileUploader({
                         )}
                     </div>
                     <div className="text-center">
-                        <p className="text-lg font-medium text-surface-900 dark:text-white mb-1">
+                        <p className="text-lg font-semibold text-surface-900 dark:text-white mb-1">
                             {isDragActive ? "Drop files here" : label}
                         </p>
                         <p className="text-sm text-surface-500 dark:text-surface-400">
                             {description}
                         </p>
-                        <p className="text-xs text-surface-400 dark:text-surface-500 mt-2">
-                            Max {formatFileSize(maxSize)} per file · Up to {maxFiles} files
-                        </p>
                     </div>
                     <button
                         type="button"
-                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                        className="mt-5 inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl hover:from-primary-600 hover:to-primary-700 shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 transition-all font-medium"
                     >
                         <Upload className="w-4 h-4" aria-hidden="true" />
                         Select Files
                     </button>
+                    <p className="text-xs text-surface-400 dark:text-surface-500 mt-4">
+                        Max {formatFileSize(maxSize)} per file · Up to {maxFiles} files
+                    </p>
                 </div>
             </div>
 
