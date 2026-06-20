@@ -8,7 +8,7 @@ import {
     type RenderDeps,
     type RedactionBox,
 } from "@/lib/pdf/redact";
-import { PDFDocument } from "@cantoo/pdf-lib";
+import { PDFDocument, StandardFonts } from "@cantoo/pdf-lib";
 
 const box = (over: Partial<RedactionBox> = {}): RedactionBox => ({
     id: "b1", page: 0, x: 0.1, y: 0.1, w: 0.2, h: 0.2, ...over,
@@ -64,6 +64,18 @@ async function makePdf(pageCount: number): Promise<File> {
     return new File([new Uint8Array(bytes)], "in.pdf", { type: "application/pdf" });
 }
 
+async function extractPageTexts(bytes: Uint8Array): Promise<string[]> {
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const pdf = await pdfjs.getDocument({ data: bytes, useWorkerFetch: false, isEvalSupported: false }).promise;
+    const texts: string[] = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const tc = await page.getTextContent();
+        texts.push(tc.items.map((it) => ("str" in it ? it.str : "")).join(""));
+    }
+    return texts;
+}
+
 describe("applyRedactions", () => {
     it("rasterizes only pages with boxes, copies the rest, preserves page count", async () => {
         const file = await makePdf(3);
@@ -88,5 +100,24 @@ describe("applyRedactions", () => {
         const { rasterizedPages } = await applyRedactions(file, [], {}, deps);
         expect(rasterizedPages).toEqual([]);
         expect(deps.renderPageToPng).not.toHaveBeenCalled();
+    });
+
+    it("SECURITY: redacted page has no extractable text; untouched page keeps its text", async () => {
+        const doc = await PDFDocument.create();
+        const font = await doc.embedFont(StandardFonts.Helvetica);
+        doc.addPage([400, 200]).drawText("SECRET-12345", { x: 20, y: 100, size: 24, font });
+        doc.addPage([400, 200]).drawText("KEEP-99999", { x: 20, y: 100, size: 24, font });
+        const bytes = await doc.save();
+        const file = new File([new Uint8Array(bytes)], "secret.pdf", { type: "application/pdf" });
+
+        // Stub renderer stands in for the real raster; the security property is
+        // that the affected page becomes image-only (no text), not the pixels.
+        const deps: RenderDeps = { renderPageToPng: vi.fn().mockResolvedValue(PNG_1x1) };
+        const { blob } = await applyRedactions(file, [{ id: "a", page: 0, x: 0, y: 0, w: 1, h: 1 }], {}, deps);
+
+        const texts = await extractPageTexts(new Uint8Array(await blob.arrayBuffer()));
+        expect(texts[0]).not.toContain("SECRET-12345");
+        expect(texts[0]).toBe(""); // page fully rasterized → zero text
+        expect(texts[1]).toContain("KEEP-99999"); // untouched page preserved
     });
 });
