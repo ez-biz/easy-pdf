@@ -27,24 +27,25 @@ export function RedactionEditor({
     onUpdateBox,
     onDeleteBox,
 }: Props) {
-    const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const startPt = useRef<{ x: number; y: number } | null>(null);
     const [draft, setDraft] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
     const [selectedId, setSelectedId] = useState<string | null>(null);
-    const overlayRef = useRef<HTMLDivElement>(null);
-    const startPt = useRef<{ x: number; y: number } | null>(null);
 
     const down = (e: React.PointerEvent) => {
-        if (!overlayRef.current) return;
-        const r = overlayRef.current.getBoundingClientRect();
+        const el = containerRef.current;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
         startPt.current = { x: e.clientX - r.left, y: e.clientY - r.top };
         setSelectedId(null);
     };
 
     const move = (e: React.PointerEvent) => {
-        if (!startPt.current || !overlayRef.current || !size) return;
-        const r = overlayRef.current.getBoundingClientRect();
+        const el = containerRef.current;
+        if (!startPt.current || !el) return;
+        const r = el.getBoundingClientRect();
         setDraft(
-            pointerToFractionRect(startPt.current.x, startPt.current.y, e.clientX - r.left, e.clientY - r.top, size.w, size.h)
+            pointerToFractionRect(startPt.current.x, startPt.current.y, e.clientX - r.left, e.clientY - r.top, r.width, r.height)
         );
     };
 
@@ -68,47 +69,38 @@ export function RedactionEditor({
                 </Button>
             </div>
 
-            <div className="relative mx-auto w-fit" style={size ? { width: size.w, height: size.h } : undefined}>
-                <PDFPageRenderer
-                    file={file}
-                    pageNumber={pageNumber}
-                    scale={1.3}
-                    onPageRendered={(w, h) => setSize({ w, h })}
-                />
-                {size && (
+            <div
+                ref={containerRef}
+                onPointerDown={down}
+                onPointerMove={move}
+                onPointerUp={up}
+                className="relative w-full cursor-crosshair touch-none overflow-hidden rounded-xl border border-surface-200 dark:border-surface-700"
+            >
+                <PDFPageRenderer file={file} pageNumber={pageNumber} className="pointer-events-none select-none" />
+                {boxes.map((b) => (
+                    <RedactionBox
+                        key={b.id}
+                        box={b}
+                        containerRef={containerRef}
+                        selected={selectedId === b.id}
+                        onSelect={() => setSelectedId(b.id)}
+                        onChange={(u) => onUpdateBox(b.id, u)}
+                        onDelete={() => onDeleteBox(b.id)}
+                    />
+                ))}
+                {draft && (
                     <div
-                        ref={overlayRef}
-                        className="absolute inset-0 cursor-crosshair touch-none"
-                        onPointerDown={down}
-                        onPointerMove={move}
-                        onPointerUp={up}
-                    >
-                        {boxes.map((b) => (
-                            <RedactionBox
-                                key={b.id}
-                                box={b}
-                                containerWidth={size.w}
-                                containerHeight={size.h}
-                                selected={selectedId === b.id}
-                                onSelect={() => setSelectedId(b.id)}
-                                onChange={(u) => onUpdateBox(b.id, u)}
-                                onDelete={() => onDeleteBox(b.id)}
-                            />
-                        ))}
-                        {draft && (
-                            <div
-                                className="absolute border border-black bg-black/40"
-                                style={{
-                                    left: `${draft.x * 100}%`,
-                                    top: `${draft.y * 100}%`,
-                                    width: `${draft.w * 100}%`,
-                                    height: `${draft.h * 100}%`,
-                                }}
-                            />
-                        )}
-                    </div>
+                        className="pointer-events-none absolute border border-black bg-black/40"
+                        style={{
+                            left: `${draft.x * 100}%`,
+                            top: `${draft.y * 100}%`,
+                            width: `${draft.w * 100}%`,
+                            height: `${draft.h * 100}%`,
+                        }}
+                    />
                 )}
             </div>
+            <p className="text-center text-xs text-surface-500">Drag on the page to draw a redaction box. Click a box to move, resize, or delete it.</p>
         </div>
     );
 }

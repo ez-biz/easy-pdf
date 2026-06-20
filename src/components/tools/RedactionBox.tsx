@@ -6,8 +6,7 @@ import type { RedactionBox as Box } from "@/lib/pdf/redact";
 
 interface Props {
     box: Box;
-    containerWidth: number;
-    containerHeight: number;
+    containerRef: React.RefObject<HTMLDivElement | null>;
     selected: boolean;
     onSelect: () => void;
     onChange: (updates: Partial<Box>) => void;
@@ -16,15 +15,7 @@ interface Props {
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
-export function RedactionBox({
-    box,
-    containerWidth,
-    containerHeight,
-    selected,
-    onSelect,
-    onChange,
-    onDelete,
-}: Props) {
+export function RedactionBox({ box, containerRef, selected, onSelect, onChange, onDelete }: Props) {
     const drag = useRef<null | { mode: "move" | "resize"; startX: number; startY: number; orig: Box }>(null);
 
     const start = (mode: "move" | "resize") => (e: React.PointerEvent) => {
@@ -36,9 +27,12 @@ export function RedactionBox({
 
     const move = (e: React.PointerEvent) => {
         const s = drag.current;
-        if (!s || containerWidth === 0 || containerHeight === 0) return;
-        const dx = (e.clientX - s.startX) / containerWidth;
-        const dy = (e.clientY - s.startY) / containerHeight;
+        const el = containerRef.current;
+        if (!s || !el) return;
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return;
+        const dx = (e.clientX - s.startX) / r.width;
+        const dy = (e.clientY - s.startY) / r.height;
         if (s.mode === "move") {
             onChange({
                 x: clamp(s.orig.x + dx, 0, 1 - s.orig.w),
@@ -52,7 +46,8 @@ export function RedactionBox({
         }
     };
 
-    const end = () => {
+    const end = (e: React.PointerEvent) => {
+        e.stopPropagation();
         drag.current = null;
     };
 
