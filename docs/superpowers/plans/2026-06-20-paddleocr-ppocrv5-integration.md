@@ -342,10 +342,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const initializeMock = vi.fn();
 const recognizeMock = vi.fn();
-const PaddleOcrServiceMock = vi.fn(() => ({
-    initialize: initializeMock,
-    recognize: recognizeMock,
-}));
+// NB: must be a regular function (not an arrow) so it is callable with `new`.
+const PaddleOcrServiceMock = vi.fn(function () {
+    return { initialize: initializeMock, recognize: recognizeMock };
+});
 
 vi.mock("ppu-paddle-ocr/web", () => ({
     PaddleOcrService: PaddleOcrServiceMock,
