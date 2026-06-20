@@ -30,6 +30,7 @@
     "nextra": "^4.6.1",
     "pdfjs-dist": "^4.10.38",
     "pptxgenjs": "^4.0.1",
+    "ppu-paddle-ocr": "^5.8.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.5",
