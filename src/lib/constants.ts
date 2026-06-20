@@ -254,6 +254,15 @@ export const TOOLS: Tool[] = [
         category: "security",
         color: "from-amber-500 to-amber-600",
     },
+    {
+        id: "redact-pdf",
+        name: "Redact PDF",
+        description: "Permanently black out sensitive content",
+        href: "/redact-pdf",
+        icon: "Eraser",
+        category: "security",
+        color: "from-red-500 to-red-600",
+    },
 
     // Optimize
     {

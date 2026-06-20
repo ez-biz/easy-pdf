@@ -17,7 +17,7 @@ A modern, privacy-focused PDF manipulation suite built with Next.js 15. All proc
 | **Convert** | PDF to Image, Image to PDF | ✅ Live |
 | **Optimize** | Compress PDF | ✅ Live |
 | **Edit** | Add Watermark, Add Page Numbers, Remove Pages, Extract Pages, Edit Metadata, Add Text, Add Image, **Sign PDF** | ✅ Live |
-| **Security** | Password Protect PDF, Unlock PDF | ✅ Live |
+| **Security** | Password Protect PDF, Unlock PDF, **Redact PDF** | ✅ Live |
 
 ### Core Features
 
@@ -171,6 +171,7 @@ Elegant feedback system with 4 types:
 #### Security
 - **Protect PDF** - Add password protection (note: client-side limitation)
 - **Unlock PDF** - Remove password from protected PDFs
+- **Redact PDF** - Permanently remove sensitive content. Redacted pages are flattened to images so the hidden text is truly gone (not just covered) — 100% client-side.
 
 ## 🔧 Available Scripts
 
