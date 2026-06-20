@@ -88,33 +88,24 @@ A small abstraction so both engines are interchangeable and testable:
 - **`languages.ts`** — single source of truth mapping `{ uiCode, label, tesseractCode, paddleCode? }`. Drives the dropdown and per-engine availability.
 - **`index.ts`** — `getEngine(id: OcrEngineId): OcrEngine` selector.
 
-### 3.2 Worker (`src/lib/ocr/ocr.worker.ts`)
+### 3.2 No custom wrapper worker  *(revised — see note)*
 
-A dedicated Web Worker that owns the chosen engine and runs recognition off the main thread. Message protocol mirrors the existing `useConversionWorker.ts` pattern:
+> **Revised during planning.** The original design proposed a custom `src/lib/ocr/ocr.worker.ts` + `useOcrWorker` hook. We confirmed that **both `client-side-ocr` and `tesseract.js` already run their heavy compute in their own internal Web Workers** (onnxruntime detection/recognition workers; Tesseract's worker). Wrapping them in another worker would nest `onnxruntime-web` in a worker-of-a-worker — fragile under Next's webpack — for no benefit. So we **drop the custom wrapper worker**. The engine abstraction is called directly from the main thread; the libraries keep the actual inference off it.
 
-- **Request:** `{ id, engine: OcrEngineId, lang, bitmap: ImageBitmap, pageIndex, totalPages }` (bitmap transferred, not copied).
-- **Responses:** `{ id, type: 'progress', progress, stage }`, `{ id, type: 'result', text, confidence }`, `{ id, type: 'error', error }`.
+Each engine is loaded lazily via dynamic `import()` so the ~15–30 MB of models / `onnxruntime-web` only load when OCR runs, not in the initial bundle. `engine.init(lang, onProgress)` performs (and reports progress for) the one-time model load.
 
-Model loading (download/init) happens inside the worker on the first `recognize` for a given engine+lang, emitting `progress`/`stage` so the UI can show a "Downloading OCR model…" phase.
-
-### 3.3 Hook (`src/hooks/useOcrWorker.ts`)
-
-Drives the worker — exposes `{ progress, stage, isProcessing, recognizePage(...) }` and lifecycle/termination — mirroring `usePDFWorker.ts` / `useConversionWorker.ts`.
-
-### 3.4 Data flow
+### 3.3 Data flow
 
 ```
-OcrClient
-  → pdfjs renders page N to <canvas>  (main thread, light)
-  → createImageBitmap(canvas)
-  → postMessage(bitmap) [transferred]  → ocr.worker
-                                           → engine.init (lazy, first run)
-                                           → engine.recognize(bitmap)
-                                           ← { text, confidence }
-  ← accumulate page text → join → display / copy / download .txt
+OcrClient (main thread)
+  → pdfjs renders page N to <canvas>           (light)
+  → engine.init(lang, onProgress)              (first run only; lazy import + model load)
+  → engine.recognize(canvas, lang)             (library offloads ONNX/Tesseract to its own worker)
+  ← { text, confidence }
+  ← accumulate page text → joinPages() → display / copy / download .txt
 ```
 
-PDF parsing/rasterization stays on the main thread (pdfjs already uses its own worker for parsing). Only the heavy ONNX inference moves to the OCR worker.
+PDF parsing/rasterization stays on the main thread (pdfjs already uses its own worker for parsing). The heavy ONNX/Tesseract inference runs in each library's internal worker.
 
 ---
 
