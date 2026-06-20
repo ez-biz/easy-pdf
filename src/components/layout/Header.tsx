@@ -209,7 +209,9 @@ export function Header() {
                                             {category.name}
                                         </div>
                                         {TOOLS.filter((tool) => tool.category === category.id).map(
-                                            (tool) => (
+                                            (tool) => {
+                                                const ToolIcon = getToolIcon(tool.icon);
+                                                return (
                                                 <div key={tool.id}>
                                                     {tool.comingSoon ? (
                                                         <div
@@ -218,9 +220,7 @@ export function Header() {
                                                             <div
                                                                 className={`w-8 h-8 rounded-lg bg-gradient-to-br ${tool.color} flex items-center justify-center text-white`}
                                                             >
-                                                                {iconMap[tool.icon] || (
-                                                                    <FileText className="w-4 h-4" aria-hidden="true" />
-                                                                )}
+                                                                <ToolIcon className="w-4 h-4" aria-hidden="true" />
                                                             </div>
                                                             <span className="font-medium text-surface-900 dark:text-white">
                                                                 {tool.name}
@@ -237,9 +237,7 @@ export function Header() {
                                                             <div
                                                                 className={`w-8 h-8 rounded-lg bg-gradient-to-br ${tool.color} flex items-center justify-center text-white`}
                                                             >
-                                                                {iconMap[tool.icon] || (
-                                                                    <FileText className="w-4 h-4" aria-hidden="true" />
-                                                                )}
+                                                                <ToolIcon className="w-4 h-4" aria-hidden="true" />
                                                             </div>
                                                             <span className="font-medium text-surface-900 dark:text-white">
                                                                 {tool.name}
@@ -247,7 +245,8 @@ export function Header() {
                                                         </Link>
                                                     )}
                                                 </div>
-                                            )
+                                                );
+                                            }
                                         )}
                                     </div>
                                 ))}
