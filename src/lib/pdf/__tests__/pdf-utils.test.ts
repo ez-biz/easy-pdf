@@ -14,7 +14,7 @@ async function createTestPDF(pageCount: number = 1, name: string = "test.pdf"): 
         pdf.addPage([612, 792]); // Letter size
     }
     const bytes = await pdf.save();
-    return new File([bytes], name, { type: "application/pdf" });
+    return new File([new Uint8Array(bytes)], name, { type: "application/pdf" });
 }
 
 // Helper: create a PDF with metadata
@@ -28,7 +28,7 @@ async function createTestPDFWithMetadata(): Promise<File> {
     pdf.setCreator("Test Creator");
     pdf.setProducer("Test Producer");
     const bytes = await pdf.save();
-    return new File([bytes], "metadata-test.pdf", { type: "application/pdf" });
+    return new File([new Uint8Array(bytes)], "metadata-test.pdf", { type: "application/pdf" });
 }
 
 // ─── Merge Tests ─────────────────────────────────────────────
