@@ -11,6 +11,11 @@ vi.mock("ppu-paddle-ocr/web", () => ({
     PaddleOcrService: PaddleOcrServiceMock,
 }));
 
+// Avoid loading the real onnxruntime-web in jsdom.
+vi.mock("@/lib/ocr/ortConfig", () => ({
+    configureOrt: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { paddleEngine } from "@/lib/ocr/paddleEngine";
 
 describe("paddleEngine", () => {

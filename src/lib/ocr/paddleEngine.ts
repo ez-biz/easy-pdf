@@ -13,10 +13,12 @@ interface PaddleService {
     ): Promise<{ text?: string; confidence?: number; results?: PaddleRecognitionItem[] }>;
 }
 
-// Self-hosted PP-OCRv5 default (Latin-script) model files — placed by Task 7.
+// Self-hosted PP-OCRv5 Latin-script model files (English + major European
+// languages). Detection is the optimized .ort format; the Latin recognition
+// model is only published as .onnx. Both load fine under onnxruntime-web.
 const MODEL_PATHS = {
     detection: "/models/ppocr/det.ort",
-    recognition: "/models/ppocr/rec.ort",
+    recognition: "/models/ppocr/rec.onnx",
     charactersDictionary: "/models/ppocr/dict.txt",
 };
 
@@ -44,6 +46,8 @@ export const paddleEngine: OcrEngine = {
     async init(_lang, onProgress) {
         if (service) return;
         onProgress?.(0, "Loading OCR model…");
+        const { configureOrt } = await import("./ortConfig");
+        await configureOrt();
         const { PaddleOcrService } = await import("ppu-paddle-ocr/web");
         const created = new PaddleOcrService({ model: MODEL_PATHS }) as unknown as PaddleService;
         await created.initialize();
