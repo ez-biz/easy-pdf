@@ -18,6 +18,9 @@ A modern, privacy-focused PDF manipulation suite built with Next.js 15. All proc
 | **Optimize** | Compress PDF | ✅ Live |
 | **Edit** | Add Watermark, Add Page Numbers, Remove Pages, Extract Pages, Edit Metadata, Add Text, Add Image, **Sign PDF** | ✅ Live |
 | **Security** | Password Protect PDF, Unlock PDF | ✅ Live |
+| **OCR** | **OCR PDF** — high-accuracy text extraction (PaddleOCR PP-OCRv5, with Tesseract fallback) | ✅ Live |
+
+> **OCR engines:** the OCR tool defaults to **PaddleOCR PP-OCRv5** (via `ppu-paddle-ocr` + `onnxruntime-web`) for English and major European (Latin-script) languages, and falls back to **Tesseract.js** for other scripts (Chinese, Japanese, Korean, Hindi, Arabic). All inference runs **100% client-side** — models are self-hosted and cached for offline use, and your files never leave the browser.
 
 ### Core Features
 
