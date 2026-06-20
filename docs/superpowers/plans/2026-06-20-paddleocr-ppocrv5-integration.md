@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the Tesseract-only OCR in the "OCR PDF" tool with a high-accuracy PP-OCRv5 engine (`client-side-ocr`) as the default, keeping `tesseract.js` as a selectable fallback — all client-side.
+**Goal:** Replace the Tesseract-only OCR in the "OCR PDF" tool with a high-accuracy PP-OCRv5 engine (`ppu-paddle-ocr`) as the default, keeping `tesseract.js` as a selectable fallback for languages the default model doesn't cover — all client-side.
 
-**Architecture:** A small engine abstraction (`src/lib/ocr/`) puts both OCR engines behind one `OcrEngine` interface. `OcrClient` rasterizes each PDF page to a canvas (as today), then calls the selected engine. **Both libraries manage their own internal Web Workers for heavy compute**, so we do NOT build a custom wrapper worker — orchestration stays on the main thread, inference does not. Engines and models are loaded lazily via dynamic `import()` so nothing OCR-related ships in the initial bundle.
+**Architecture:** A small engine abstraction (`src/lib/ocr/`) puts both OCR engines behind one `OcrEngine` interface. `OcrClient` rasterizes each PDF page to a canvas (as today), then calls the selected engine. **The heavy compute runs off the main thread inside `onnxruntime-web` (WebGPU/WASM) and Tesseract's own worker**, so we do NOT build a custom wrapper worker. Engines and models are loaded lazily via dynamic `import()` so nothing OCR-related ships in the initial bundle.
 
-**Tech Stack:** Next.js 15 (static export), React 19, TypeScript, `client-side-ocr` (PP-OCRv5 / onnxruntime-web), `tesseract.js`, `pdfjs-dist`, vitest.
+**Tech Stack:** Next.js 15 (static export), React 19, TypeScript, `ppu-paddle-ocr` + `onnxruntime-web` (PP-OCRv5), `tesseract.js`, `pdfjs-dist`, vitest.
 
-> **Deviation from design spec (§3.2/§3.3):** the spec described a custom `ocr.worker.ts` + `useOcrWorker` hook. During planning we confirmed both engines already run compute in internal workers, so a custom wrapper would nest `onnxruntime-web` in a worker-of-a-worker (fragile under webpack) for no benefit. This plan omits it. Heavy inference still runs off the main thread via each library's own workers. Update the spec to match after approval.
+> **Engine note:** the originally-chosen `client-side-ocr` was found broken/unpublishable in the spike and removed; we pivoted to `ppu-paddle-ocr` (verified importable). `ppu-paddle-ocr` selects language by recognition model, so v1 ships only the default PP-OCRv5 model (Latin-script) with Tesseract as the fallback for other scripts. The spec's custom `ocr.worker.ts`/`useOcrWorker` are intentionally omitted (libraries already run inference off-thread).
 
 ---
 
@@ -19,7 +19,7 @@
 | `src/lib/ocr/types.ts` | `OcrEngine` interface, `OcrPageResult`, `OcrEngineId` |
 | `src/lib/ocr/languages.ts` | Language data + UI↔engine code mapping helpers |
 | `src/lib/ocr/tesseractEngine.ts` | `tesseract.js` behind `OcrEngine` |
-| `src/lib/ocr/paddleEngine.ts` | `client-side-ocr` (PP-OCRv5) behind `OcrEngine` |
+| `src/lib/ocr/paddleEngine.ts` | `ppu-paddle-ocr` (PP-OCRv5) behind `OcrEngine` |
 | `src/lib/ocr/index.ts` | `getEngine(id)` selector + `joinPages()` text assembly |
 | `src/lib/ocr/__tests__/*.test.ts` | Unit tests for the pure pieces |
 | `src/app/(tools)/ocr-pdf/OcrClient.tsx` | UI: engine toggle, language mapping, two-phase progress, fallback |
@@ -29,6 +29,8 @@
 ---
 
 ## Task 1: Install dependency & spike the library
+
+> **✅ DONE (with a pivot).** Spiking `client-side-ocr` found it broken/unpublishable, so it was removed and we pivoted to **`ppu-paddle-ocr`** + `onnxruntime-web`, which a follow-up spike verified is importable with a real typed API. Both are installed and committed; findings are in `scripts/ocr-spike.md`. The original step text below is retained for history. Proceed from Task 2.
 
 **Files:**
 - Modify: `package.json`, `package-lock.json`
@@ -130,7 +132,7 @@ git commit -m "feat(ocr): add OcrEngine interface and result types"
 - Create: `src/lib/ocr/languages.ts`
 - Test: `src/lib/ocr/__tests__/languages.test.ts`
 
-> **Note:** the `paddleCode` values below are best-known PP-OCRv5 codes. Correct them from the Task 1 spike findings if they differ. The tests assert helper *behavior*, not specific code strings, so they remain valid after corrections.
+> **Engine model note:** `ppu-paddle-ocr` selects language by the recognition *model*, not a code string. For v1 we ship only the default PP-OCRv5 model (Latin script), so a language is "PaddleOCR-supported" iff the default model covers it. We represent this with a boolean `paddleSupported`, NOT a `paddleCode`. Tesseract needs a real code (`tesseractCode`) and supports every language as the universal fallback. The `paddleSupported` set below (English + major European Latin-script languages) is the working assumption; Task 7 confirms the default model's true coverage and trims/extends this list. The tests assert helper *behavior*, so they stay valid regardless.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -140,30 +142,30 @@ import { describe, it, expect } from "vitest";
 import {
     OCR_LANGUAGES,
     getLanguage,
-    getEngineLangCode,
+    getTesseractCode,
     isSupportedBy,
 } from "@/lib/ocr/languages";
 
 describe("languages", () => {
-    it("includes English mapped for both engines", () => {
-        expect(getEngineLangCode("tesseract", "eng")).toBe("eng");
-        expect(getEngineLangCode("paddle", "eng")).toBe("en");
+    it("maps the Tesseract code and marks English as PaddleOCR-supported", () => {
+        expect(getTesseractCode("eng")).toBe("eng");
+        expect(isSupportedBy("paddle", "eng")).toBe(true);
+        expect(isSupportedBy("tesseract", "eng")).toBe(true);
     });
 
-    it("returns undefined for an unknown ui code", () => {
+    it("returns undefined / false for an unknown ui code", () => {
         expect(getLanguage("zzz")).toBeUndefined();
-        expect(getEngineLangCode("paddle", "zzz")).toBeUndefined();
+        expect(getTesseractCode("zzz")).toBeUndefined();
         expect(isSupportedBy("paddle", "zzz")).toBe(false);
+        expect(isSupportedBy("tesseract", "zzz")).toBe(false);
     });
 
-    it("treats a language without a paddleCode as unsupported by paddle but supported by tesseract", () => {
-        const noPaddle = OCR_LANGUAGES.find((l) => l.paddleCode === undefined);
-        // Guard: if every language has a paddleCode, this assertion is vacuously skipped.
-        if (noPaddle) {
-            expect(isSupportedBy("paddle", noPaddle.uiCode)).toBe(false);
-            expect(isSupportedBy("tesseract", noPaddle.uiCode)).toBe(true);
-        }
-        // Tesseract supports every listed language (universal fallback).
+    it("routes a non-Latin language (e.g. Arabic) to Tesseract only in v1", () => {
+        expect(isSupportedBy("tesseract", "ara")).toBe(true);
+        expect(isSupportedBy("paddle", "ara")).toBe(false);
+    });
+
+    it("supports every listed language under Tesseract (universal fallback)", () => {
         for (const l of OCR_LANGUAGES) {
             expect(isSupportedBy("tesseract", l.uiCode)).toBe(true);
         }
@@ -186,42 +188,44 @@ export interface OcrLanguage {
     uiCode: string;          // value stored in the dropdown / state
     label: string;
     tesseractCode: string;   // always present — Tesseract is the universal fallback
-    paddleCode?: string;     // present only if PP-OCRv5 supports the language
+    paddleSupported: boolean; // true iff the default PP-OCRv5 model (Latin script, v1) covers it
 }
 
+// v1: the default ppu-paddle-ocr PP-OCRv5 model is Latin-script. Mark those true;
+// non-Latin scripts (CJK, Devanagari, Arabic) route to Tesseract until we host their models.
 export const OCR_LANGUAGES: OcrLanguage[] = [
-    { uiCode: "eng", label: "English", tesseractCode: "eng", paddleCode: "en" },
-    { uiCode: "chi_sim", label: "Chinese (Simplified)", tesseractCode: "chi_sim", paddleCode: "ch" },
-    { uiCode: "jpn", label: "Japanese", tesseractCode: "jpn", paddleCode: "japan" },
-    { uiCode: "kor", label: "Korean", tesseractCode: "kor", paddleCode: "korean" },
-    { uiCode: "fra", label: "French", tesseractCode: "fra", paddleCode: "french" },
-    { uiCode: "deu", label: "German", tesseractCode: "deu", paddleCode: "german" },
-    { uiCode: "spa", label: "Spanish", tesseractCode: "spa", paddleCode: "latin" },
-    { uiCode: "ita", label: "Italian", tesseractCode: "ita", paddleCode: "latin" },
-    { uiCode: "por", label: "Portuguese", tesseractCode: "por", paddleCode: "latin" },
-    { uiCode: "hin", label: "Hindi", tesseractCode: "hin", paddleCode: "devanagari" },
-    { uiCode: "ara", label: "Arabic", tesseractCode: "ara", paddleCode: "arabic" },
+    { uiCode: "eng", label: "English", tesseractCode: "eng", paddleSupported: true },
+    { uiCode: "fra", label: "French", tesseractCode: "fra", paddleSupported: true },
+    { uiCode: "deu", label: "German", tesseractCode: "deu", paddleSupported: true },
+    { uiCode: "spa", label: "Spanish", tesseractCode: "spa", paddleSupported: true },
+    { uiCode: "ita", label: "Italian", tesseractCode: "ita", paddleSupported: true },
+    { uiCode: "por", label: "Portuguese", tesseractCode: "por", paddleSupported: true },
+    { uiCode: "chi_sim", label: "Chinese (Simplified)", tesseractCode: "chi_sim", paddleSupported: false },
+    { uiCode: "jpn", label: "Japanese", tesseractCode: "jpn", paddleSupported: false },
+    { uiCode: "kor", label: "Korean", tesseractCode: "kor", paddleSupported: false },
+    { uiCode: "hin", label: "Hindi", tesseractCode: "hin", paddleSupported: false },
+    { uiCode: "ara", label: "Arabic", tesseractCode: "ara", paddleSupported: false },
 ];
 
 export function getLanguage(uiCode: string): OcrLanguage | undefined {
     return OCR_LANGUAGES.find((l) => l.uiCode === uiCode);
 }
 
-export function getEngineLangCode(engine: OcrEngineId, uiCode: string): string | undefined {
-    const lang = getLanguage(uiCode);
-    if (!lang) return undefined;
-    return engine === "paddle" ? lang.paddleCode : lang.tesseractCode;
+export function getTesseractCode(uiCode: string): string | undefined {
+    return getLanguage(uiCode)?.tesseractCode;
 }
 
 export function isSupportedBy(engine: OcrEngineId, uiCode: string): boolean {
-    return getEngineLangCode(engine, uiCode) !== undefined;
+    const lang = getLanguage(uiCode);
+    if (!lang) return false;
+    return engine === "paddle" ? lang.paddleSupported : true;
 }
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/lib/ocr/__tests__/languages.test.ts`
-Expected: PASS (3 tests).
+Expected: PASS (4 tests).
 
 - [ ] **Step 5: Commit**
 
@@ -328,7 +332,7 @@ git commit -m "feat(ocr): wrap tesseract.js behind OcrEngine"
 - Create: `src/lib/ocr/paddleEngine.ts`
 - Test: `src/lib/ocr/__tests__/paddleEngine.test.ts`
 
-> **Spike-dependent:** if Task 1 found that `processImage` accepts a canvas directly, you may pass `canvas` instead of converting to a Blob. The Blob path below is the safe default. If the factory exposes a model-path option, thread it through here (see Task 7).
+> **API (confirmed from spike):** `ppu-paddle-ocr/web` exports `PaddleOcrService`. Construct with self-hosted model paths, `await initialize()`, then `recognize(arrayBuffer, { flatten: true })` → `{ text, confidence, results: { text, box, confidence }[] }`. Input is `ArrayBuffer | CanvasLike` (no Blob/File overload) so the wrapper converts the canvas → PNG blob → `ArrayBuffer`. v1 uses the single default model, so `lang` is ignored by this engine (Tesseract handles non-default languages). The model files are placed by Task 7; reference them by the `/models/ppocr/*` paths here. `onnxruntime-web` wasm path config is NOT done here — it is Task 7's job (ORT defaults work for the unit test, which mocks the library).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -337,20 +341,23 @@ git commit -m "feat(ocr): wrap tesseract.js behind OcrEngine"
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const initializeMock = vi.fn();
-const processImageMock = vi.fn();
-const createMock = vi.fn(() => ({ initialize: initializeMock, processImage: processImageMock }));
+const recognizeMock = vi.fn();
+const PaddleOcrServiceMock = vi.fn(() => ({
+    initialize: initializeMock,
+    recognize: recognizeMock,
+}));
 
-vi.mock("client-side-ocr", () => ({
-    createRapidOCREngine: (...args: unknown[]) => createMock(...args),
+vi.mock("ppu-paddle-ocr/web", () => ({
+    PaddleOcrService: PaddleOcrServiceMock,
 }));
 
 import { paddleEngine } from "@/lib/ocr/paddleEngine";
 
 describe("paddleEngine", () => {
     beforeEach(() => {
-        createMock.mockClear();
+        PaddleOcrServiceMock.mockClear();
         initializeMock.mockReset().mockResolvedValue(undefined);
-        processImageMock.mockReset();
+        recognizeMock.mockReset();
         paddleEngine.terminate();
         // jsdom canvas.toBlob is not implemented — stub it.
         HTMLCanvasElement.prototype.toBlob = function (cb: BlobCallback) {
@@ -358,28 +365,47 @@ describe("paddleEngine", () => {
         };
     });
 
-    it("initializes once per language and normalizes the result", async () => {
-        processImageMock.mockResolvedValue({ text: "hola", confidence: 0.95, lines: [] });
+    it("initializes the service once and normalizes flattened results", async () => {
+        recognizeMock.mockResolvedValue({
+            text: "hola mundo",
+            confidence: 0.95,
+            results: [
+                { text: "hola", confidence: 0.9 },
+                { text: "mundo", confidence: 1 },
+            ],
+        });
         const canvas = document.createElement("canvas");
 
-        const r1 = await paddleEngine.recognize(canvas, "en");
-        const r2 = await paddleEngine.recognize(canvas, "en");
+        const r1 = await paddleEngine.recognize(canvas, "eng");
+        const r2 = await paddleEngine.recognize(canvas, "eng");
 
-        expect(r1).toEqual({ text: "hola", confidence: 0.95, lines: [] });
-        expect(r2.text).toBe("hola");
-        // Same language → engine created only once.
-        expect(createMock).toHaveBeenCalledTimes(1);
-        expect(createMock).toHaveBeenCalledWith(
-            expect.objectContaining({ language: "en", modelVersion: "PP-OCRv5" })
-        );
+        expect(r1.text).toBe("hola mundo");
+        expect(r1.confidence).toBeCloseTo(0.95);
+        expect(r1.lines).toEqual([
+            { text: "hola", confidence: 0.9 },
+            { text: "mundo", confidence: 1 },
+        ]);
+        expect(r2.text).toBe("hola mundo");
+        // Singleton: constructed and initialized exactly once across calls.
+        expect(PaddleOcrServiceMock).toHaveBeenCalledTimes(1);
+        expect(initializeMock).toHaveBeenCalledTimes(1);
     });
 
-    it("recreates the engine when the language changes", async () => {
-        processImageMock.mockResolvedValue({ text: "x", confidence: 1 });
+    it("passes self-hosted model paths and calls recognize with an ArrayBuffer + flatten", async () => {
+        recognizeMock.mockResolvedValue({ text: "x", confidence: 1, results: [] });
         const canvas = document.createElement("canvas");
-        await paddleEngine.recognize(canvas, "en");
-        await paddleEngine.recognize(canvas, "ch");
-        expect(createMock).toHaveBeenCalledTimes(2);
+        await paddleEngine.recognize(canvas, "eng");
+
+        expect(PaddleOcrServiceMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                model: expect.objectContaining({
+                    recognition: expect.stringContaining("/models/ppocr/"),
+                }),
+            })
+        );
+        const [img, opts] = recognizeMock.mock.calls[0];
+        expect(img).toBeInstanceOf(ArrayBuffer);
+        expect(opts).toMatchObject({ flatten: true });
     });
 });
 ```
@@ -395,63 +421,70 @@ Expected: FAIL — `Cannot find module '@/lib/ocr/paddleEngine'`.
 // src/lib/ocr/paddleEngine.ts
 import type { OcrEngine } from "./types";
 
-interface RapidEngine {
-    initialize(): Promise<void>;
-    processImage(
-        input: Blob,
-        options?: { enableWordSegmentation?: boolean; returnConfidence?: boolean }
-    ): Promise<{ text?: string; confidence?: number; lines?: { text: string; confidence: number }[] }>;
+interface PaddleRecognitionItem {
+    text: string;
+    confidence: number;
 }
 
-let instance: RapidEngine | null = null;
-let currentLang: string | null = null;
+interface PaddleService {
+    initialize(): Promise<void>;
+    recognize(
+        image: ArrayBuffer,
+        options?: { flatten?: boolean }
+    ): Promise<{ text?: string; confidence?: number; results?: PaddleRecognitionItem[] }>;
+}
 
-function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+// Self-hosted PP-OCRv5 default (Latin-script) model files — placed by Task 7.
+const MODEL_PATHS = {
+    detection: "/models/ppocr/det.ort",
+    recognition: "/models/ppocr/rec.ort",
+    charactersDictionary: "/models/ppocr/dict.txt",
+};
+
+let service: PaddleService | null = null;
+
+function canvasToArrayBuffer(canvas: HTMLCanvasElement): Promise<ArrayBuffer> {
     return new Promise((resolve, reject) => {
-        canvas.toBlob(
-            (blob) => (blob ? resolve(blob) : reject(new Error("canvas.toBlob returned null"))),
-            "image/png"
-        );
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                reject(new Error("canvas.toBlob returned null"));
+                return;
+            }
+            blob.arrayBuffer().then(resolve, reject);
+        }, "image/png");
     });
 }
 
 /**
- * Wraps client-side-ocr (PP-OCRv5). Imported dynamically so the ~15-30MB of
- * models/onnxruntime-web only load when OCR runs. The library manages its own
- * detection/recognition workers internally.
+ * Wraps ppu-paddle-ocr (PP-OCRv5) via its web entry. Imported dynamically so
+ * the model weights and onnxruntime-web runtime only load when OCR actually
+ * runs. v1 uses the single default (Latin-script) model, so `lang` is ignored
+ * here — Tesseract handles languages the default model does not cover.
  */
 export const paddleEngine: OcrEngine = {
-    async init(lang, onProgress) {
-        if (instance && currentLang === lang) return;
-        instance = null;
+    async init(_lang, onProgress) {
+        if (service) return;
         onProgress?.(0, "Loading OCR model…");
-        const { createRapidOCREngine } = await import("client-side-ocr");
-        const engine = createRapidOCREngine({ language: lang, modelVersion: "PP-OCRv5" }) as RapidEngine;
-        await engine.initialize();
-        instance = engine;
-        currentLang = lang;
+        const { PaddleOcrService } = await import("ppu-paddle-ocr/web");
+        const created = new PaddleOcrService({ model: MODEL_PATHS }) as unknown as PaddleService;
+        await created.initialize();
+        service = created;
         onProgress?.(100, "Model ready");
     },
 
     async recognize(canvas, lang) {
-        if (!instance || currentLang !== lang) {
-            await this.init(lang);
-        }
-        const blob = await canvasToBlob(canvas);
-        const res = await instance!.processImage(blob, {
-            enableWordSegmentation: true,
-            returnConfidence: true,
-        });
+        if (!service) await this.init(lang);
+        const buffer = await canvasToArrayBuffer(canvas);
+        const res = await service!.recognize(buffer, { flatten: true });
         return {
             text: res.text ?? "",
             confidence: res.confidence ?? 0,
-            lines: res.lines,
+            lines: res.results?.map((r) => ({ text: r.text, confidence: r.confidence })),
         };
     },
 
     terminate() {
-        instance = null;
-        currentLang = null;
+        service = null;
     },
 };
 ```
@@ -465,7 +498,7 @@ Expected: PASS (2 tests).
 
 ```bash
 git add src/lib/ocr/paddleEngine.ts src/lib/ocr/__tests__/paddleEngine.test.ts
-git commit -m "feat(ocr): wrap client-side-ocr PP-OCRv5 behind OcrEngine"
+git commit -m "feat(ocr): wrap ppu-paddle-ocr PP-OCRv5 behind OcrEngine"
 ```
 
 ---
@@ -550,38 +583,78 @@ git commit -m "feat(ocr): add engine selector and page-text assembly"
 
 ---
 
-## Task 7: Model & onnxruntime-web asset hosting (conditional)
+## Task 7: Self-host PP-OCRv5 models & onnxruntime-web wasm
 
 **Files:**
-- Conditional Modify: `next.config.ts`
-- Conditional Create: `public/models/ppocr/*`, `public/ort/*`
-- Conditional Create: `src/lib/ocr/ortConfig.ts`
+- Create: `public/models/ppocr/{det.ort,rec.ort,dict.txt}` (default PP-OCRv5 model)
+- Create: `public/ort/*.wasm` (onnxruntime-web runtime, via a build copy step)
+- Create: `src/lib/ocr/ortConfig.ts`
+- Modify: `src/lib/ocr/paddleEngine.ts` (call `configureOrt()` before init; align `MODEL_PATHS` to real filenames)
+- Modify: `src/lib/ocr/languages.ts` (set `paddleSupported` to the default model's real coverage)
+- Modify: `next.config.ts` (PWA `runtimeCaching` for `/models/ppocr/` + `/ort/`)
+- Modify: `package.json` (copy ort wasm into `public/ort/` before build)
 
-Pick the branch based on the Task 1 spike. The goal: OCR works offline after first use (the app is a PWA) and the static export serves any required `.wasm`.
+Goal: OCR runs fully from our own origin and works offline after first use (PWA). No model/runtime is fetched from a third-party host at runtime. Real inference can't run in CI, so this task is verified by build + the Task 9 manual check.
 
-### Branch A — `createRapidOCREngine` accepts a model base path
+- [ ] **Step 1: Find the default model file URLs + confirm language coverage.** Read the resolved `DEFAULT_MODEL_URLS` from the installed package (e.g. `grep -r "DEFAULT_MODEL_URLS\|githubusercontent\|ppu-paddle-ocr-models" node_modules/ppu-paddle-ocr/`). Note the three default files (detection `.ort`, recognition `.ort`, dictionary `.txt`) and which language/script the default recognition model covers. Record this; it determines the `paddleSupported` list.
 
-- [ ] **Step A1: Download PP-OCRv5 mobile models** (det, rec, cls + dictionary) into `public/models/ppocr/`, matching the filenames the library expects (from spike notes).
+- [ ] **Step 2: Download the three default model files** into `public/models/ppocr/`, naming them `det.ort`, `rec.ort`, `dict.txt` (matching `MODEL_PATHS` in `paddleEngine.ts`). If the dictionary is `.txt` vs another extension, name it to match and update `MODEL_PATHS.charactersDictionary` + the `paddleEngine.test.ts` `stringContaining("/models/ppocr/")` assertion if needed. Use `curl -L -o`.
 
-- [ ] **Step A2: Create `src/lib/ocr/ortConfig.ts`** to point onnxruntime-web at self-hosted wasm:
+```bash
+mkdir -p public/models/ppocr
+# URLs from Step 1, e.g.:
+curl -L -o public/models/ppocr/det.ort  "<detection .ort url>"
+curl -L -o public/models/ppocr/rec.ort  "<recognition .ort url>"
+curl -L -o public/models/ppocr/dict.txt "<dictionary url>"
+ls -lh public/models/ppocr
+```
+
+- [ ] **Step 3: Align `languages.ts` `paddleSupported`** to the Step 1 finding. If the default model is Latin-script (English + French/German/Spanish/Italian/Portuguese), the existing list is correct. If it differs (e.g. covers Chinese/Japanese instead), flip the booleans accordingly and update the `languages.test.ts` "non-Latin → Tesseract only" case to use a language that is genuinely unsupported. Re-run: `npx vitest run src/lib/ocr/__tests__/languages.test.ts`.
+
+- [ ] **Step 4: Create `src/lib/ocr/ortConfig.ts`** to point onnxruntime-web at the self-hosted wasm:
 
 ```typescript
 // src/lib/ocr/ortConfig.ts
-// Call once before engine init. Copy the ort-*.wasm files shipped in
-// node_modules/onnxruntime-web/dist into public/ort/ during the build.
+// Points onnxruntime-web at the self-hosted wasm copied into /public/ort/.
+// Idempotent — safe to call before every engine init.
+let configured = false;
+
 export async function configureOrt(): Promise<void> {
+    if (configured) return;
     const ort = await import("onnxruntime-web");
     ort.env.wasm.wasmPaths = "/ort/";
+    configured = true;
 }
 ```
 
-- [ ] **Step A3:** In `paddleEngine.init`, call `await configureOrt()` before `createRapidOCREngine`, and pass the model base path option (exact option name from spike), e.g. `createRapidOCREngine({ language: lang, modelVersion: "PP-OCRv5", modelPath: "/models/ppocr/" })`. Update `paddleEngine.test.ts`'s `objectContaining` only if you add asserted fields.
+- [ ] **Step 5: Call `configureOrt()` in `paddleEngine.init`** before constructing `PaddleOcrService`:
 
-- [ ] **Step A4:** Add an npm `prebuild` step (or copy in `next.config.ts`) to copy `node_modules/onnxruntime-web/dist/*.wasm` → `public/ort/`. Verify `npm run build` emits them under `out/ort/`.
+```typescript
+// in paddleEngine.init, before `const { PaddleOcrService } = await import(...)`:
+const { configureOrt } = await import("./ortConfig");
+await configureOrt();
+```
 
-### Branch B — no model-path option (CDN download on first run)
+Add to `paddleEngine.test.ts` a mock so the unit test does not load real onnxruntime-web:
 
-- [ ] **Step B1: Add PWA runtime caching** so the CDN-downloaded models persist offline. In `next.config.ts`, pass `workboxOptions.runtimeCaching` to `withPWAInit` with a `CacheFirst` rule matching the model host (from spike notes), e.g.:
+```typescript
+vi.mock("@/lib/ocr/ortConfig", () => ({ configureOrt: vi.fn().mockResolvedValue(undefined) }));
+```
+
+Re-run `npx vitest run src/lib/ocr/__tests__/paddleEngine.test.ts` — expected PASS.
+
+- [ ] **Step 6: Copy ort wasm into `public/ort/` via a build step.** Add to `package.json` scripts and ensure it runs before `build`:
+
+```json
+"scripts": {
+  "copy-ort": "mkdir -p public/ort && cp node_modules/onnxruntime-web/dist/*.wasm public/ort/",
+  "prebuild": "npm run copy-ort"
+}
+```
+
+Run `npm run copy-ort` and confirm `.wasm` files now exist under `public/ort/`. Add `public/ort/` and `public/models/ppocr/` to `.gitignore` ONLY if the team prefers not to commit binaries; otherwise commit them so the static deploy is self-contained (recommended — commit them).
+
+- [ ] **Step 7: Add PWA runtime caching** so the self-hosted models + wasm persist offline. In `next.config.ts`, extend `withPWAInit`:
 
 ```typescript
 const withPWA = withPWAInit({
@@ -591,11 +664,10 @@ const withPWA = withPWAInit({
     workboxOptions: {
         runtimeCaching: [
             {
-                // Replace with the real model CDN host from the spike.
-                urlPattern: /^https:\/\/.*\.(?:onnx|wasm)$/i,
+                urlPattern: /\/(?:models\/ppocr|ort)\/.*\.(?:ort|wasm|txt)$/i,
                 handler: "CacheFirst",
                 options: {
-                    cacheName: "ocr-models",
+                    cacheName: "ocr-assets",
                     expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 90 },
                     cacheableResponse: { statuses: [0, 200] },
                 },
@@ -605,20 +677,16 @@ const withPWA = withPWAInit({
 });
 ```
 
-- [ ] **Step B2:** Confirm the user-facing copy in `OcrClient` (Task 8) says the model downloads once and that **user files never leave the browser** (only model weights are fetched).
-
-### Both branches
-
-- [ ] **Step Z1: Verify build**
+- [ ] **Step 8: Verify build**
 
 Run: `npm run build`
-Expected: build succeeds; static export under `out/` includes any self-hosted assets.
+Expected: build succeeds; `out/models/ppocr/` and `out/ort/` contain the assets.
 
-- [ ] **Step Z2: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 git add -A
-git commit -m "feat(ocr): host/cache PP-OCRv5 models and onnxruntime-web wasm for offline use"
+git commit -m "feat(ocr): self-host PP-OCRv5 models + onnxruntime-web wasm for offline OCR"
 ```
 
 ---
@@ -636,7 +704,7 @@ Replace the existing `import Tesseract from "tesseract.js";` and the local `LANG
 
 ```typescript
 import { getEngine, joinPages } from "@/lib/ocr";
-import { OCR_LANGUAGES, getEngineLangCode, isSupportedBy } from "@/lib/ocr/languages";
+import { OCR_LANGUAGES, getTesseractCode, isSupportedBy } from "@/lib/ocr/languages";
 import type { OcrEngineId } from "@/lib/ocr/types";
 ```
 
@@ -659,11 +727,13 @@ const runOcr = async (useEngine: OcrEngineId) => {
         return;
     }
 
-    const langCode = getEngineLangCode(useEngine, language);
-    if (!langCode) {
-        setError("Selected language is not supported by this engine. Try the Tesseract engine.");
+    if (!isSupportedBy(useEngine, language)) {
+        setError("Selected language isn't available for this engine. Switch engine or language.");
         return;
     }
+    // Tesseract needs its language code; the PaddleOCR v1 default model is
+    // language-agnostic, so we pass the UI code through (the engine ignores it).
+    const langArg = useEngine === "tesseract" ? getTesseractCode(language)! : language;
 
     setIsProcessing(true);
     setProgress(0);
@@ -673,7 +743,7 @@ const runOcr = async (useEngine: OcrEngineId) => {
     const engine = getEngine(useEngine);
 
     try {
-        await engine.init(langCode, (_p, s) => setStage(s));
+        await engine.init(langArg, (_p, s) => setStage(s));
 
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -690,7 +760,7 @@ const runOcr = async (useEngine: OcrEngineId) => {
             const context = canvas.getContext("2d")!;
             await page.render({ canvasContext: context, viewport }).promise;
 
-            const { text } = await engine.recognize(canvas, langCode);
+            const { text } = await engine.recognize(canvas, langArg);
             allText.push(text);
             setProgress(Math.round((i / totalPages) * 100));
         }
@@ -844,7 +914,7 @@ git commit -m "docs: note PP-OCRv5 high-accuracy OCR with Tesseract fallback"
 
 ## Self-Review Notes
 
-- **Spec coverage:** engine abstraction (Tasks 2,4,5,6) ✓; PP-OCRv5 via client-side-ocr (Task 5) ✓; Tesseract fallback (Tasks 4,8) ✓; lazy model loading (dynamic imports in Tasks 4,5) ✓; self-hosted-or-cached models (Task 7) ✓; engine toggle + language mapping + two-phase progress (Tasks 3,8) ✓; error handling/fallback (Task 8) ✓; testing of pure pieces + manual inference check (Tasks 3–6,9) ✓; YAGNI scope (no searchable-PDF/batch) ✓.
-- **Deviation:** custom worker + `useOcrWorker` from spec §3.2/§3.3 intentionally dropped (libraries self-manage workers). Update the spec after approval.
-- **Type consistency:** `OcrEngine` (`init`/`recognize`/`terminate`), `OcrPageResult` (`text`/`confidence`/`lines?`), `OcrEngineId` (`"paddle"|"tesseract"`), `getEngine`, `joinPages`, `getEngineLangCode`, `isSupportedBy` used consistently across tasks.
-- **Spike-dependent specifics** (package name, `processImage` input type, model-path option, exact PP-OCRv5 language codes) are isolated to Tasks 1, 5, 7 and flagged inline.
+- **Spec coverage:** engine abstraction (Tasks 2,4,5,6) ✓; PP-OCRv5 via `ppu-paddle-ocr` (Task 5) ✓; Tesseract fallback (Tasks 4,8) ✓; lazy model loading (dynamic imports in Tasks 4,5) ✓; self-hosted models + ort wasm + offline PWA cache (Task 7) ✓; engine toggle + language mapping + two-phase progress (Tasks 3,8) ✓; error handling/fallback (Task 8) ✓; testing of pure pieces + manual inference check (Tasks 3–6,9) ✓; YAGNI scope (no searchable-PDF/batch) ✓.
+- **Deviation:** custom worker + `useOcrWorker` from spec §3.2/§3.3 intentionally dropped (inference already runs off-thread in onnxruntime-web/Tesseract). Spec updated to match.
+- **Type consistency:** `OcrEngine` (`init`/`recognize`/`terminate`), `OcrPageResult` (`text`/`confidence`/`lines?`), `OcrEngineId` (`"paddle"|"tesseract"`), `getEngine`, `joinPages`, `getTesseractCode`, `isSupportedBy` used consistently across tasks.
+- **Pivot:** `client-side-ocr` → `ppu-paddle-ocr` (verified importable). Language is model-selected, so v1 paddle coverage = default Latin-script model; Tesseract covers the rest. Engine-specific unknowns isolated to Tasks 5 & 7.
