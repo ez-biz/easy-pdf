@@ -29,7 +29,8 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y lftp
-          lftp -c "
+
+          COMMON_SETTINGS="
             set ftp:ssl-allow true;
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
@@ -41,6 +42,22 @@ jobs:
             set net:reconnect-interval-base 5;
             set net:reconnect-interval-multiplier 1;
             set xfer:clobber on;
+            set xfer:use-temp-file no;
+          "
+
+          # Best-effort: remove stale .in.* temp files left by previously failed
+          # uploads so they can't block a rename. Never fail the job on this.
+          lftp -c "
+            $COMMON_SETTINGS
+            open -u '$FTP_USERNAME','$FTP_PASSWORD' 'ftp://$FTP_SERVER';
+            cd '$FTP_DIR';
+            glob -a -- rm -f '_next/static/media/.in.*';
+            bye
+          " || true
+
+          # The real deploy. Its exit status determines success/failure.
+          lftp -c "
+            $COMMON_SETTINGS
             open -u '$FTP_USERNAME','$FTP_PASSWORD' 'ftp://$FTP_SERVER';
             mirror --reverse --verbose --continue --parallel=1 ./out/ '$FTP_DIR';
             bye
