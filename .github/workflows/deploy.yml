@@ -59,7 +59,7 @@ jobs:
           lftp -c "
             $COMMON_SETTINGS
             open -u '$FTP_USERNAME','$FTP_PASSWORD' 'ftp://$FTP_SERVER';
-            mirror --reverse --verbose --continue --parallel=1 ./out/ '$FTP_DIR';
+            mirror --reverse --verbose --continue --ignore-time --parallel=1 ./out/ '$FTP_DIR';
             bye
           "
         env:
