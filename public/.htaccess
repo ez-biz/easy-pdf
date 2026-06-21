@@ -1,0 +1,20 @@
+# Static hosting rules for the Next.js static export (output: "export").
+# Pages are emitted as flat files (e.g. ocr-pdf.html), so map clean,
+# extensionless URLs to their .html file. Required on Hostinger after the
+# server migration removed Apache MultiViews; without this every tool
+# route (/ocr-pdf, /redact-pdf, ...) returns 404.
+
+Options -MultiViews
+RewriteEngine On
+
+# Serve existing files and directories untouched (assets, _next, /, ...).
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Map /foo (or /foo/) to /foo.html when that file exists.
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+?)/?$ $1.html [L]
+
+# Everything else falls back to the static 404 page.
+ErrorDocument 404 /404.html
