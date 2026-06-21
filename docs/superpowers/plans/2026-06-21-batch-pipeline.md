@@ -271,7 +271,7 @@ import type { PageNumberFormat, PageNumberPosition } from "@/lib/pdf/pageNumbers
 export type CompressOptions = Record<string, never>; // no options in v1
 export interface RotateOptions { angle: RotationAngle; scope: "all" | "odd" | "even" }
 export interface WatermarkOptions { text: string; opacity: number; position: WatermarkPosition }
-export interface PageNumberFormOptions { format: PageNumberFormat; position: PageNumberPosition; startNumber: number }
+export interface PageNumbersOptions { format: PageNumberFormat; position: PageNumberPosition; startNumber: number }
 export interface MetadataOptions { title: string; author: string; subject: string; keywords: string }
 export interface PasswordOptions { password: string }
 ```
@@ -442,10 +442,10 @@ export const watermarkOp: PdfOperation<WatermarkOptions> = {
 import { Hash } from "lucide-react";
 import { addPageNumbers } from "@/lib/pdf/pageNumbers";
 import type { PdfOperation } from "../types";
-import type { PageNumberFormOptions } from "./options";
+import type { PageNumbersOptions } from "./options";
 import { bytesToFile } from "./bytes";
 
-export const pageNumbersOp: PdfOperation<PageNumberFormOptions> = {
+export const pageNumbersOp: PdfOperation<PageNumbersOptions> = {
     id: "page-numbers", label: "Page numbers", icon: Hash,
     defaultOptions: { format: "number", position: "bottom-center", startNumber: 1 },
     OptionsForm: (() => null) as never,
@@ -733,7 +733,7 @@ export function WatermarkForm({ value, onChange }: { value: WatermarkOptions; on
 `src/lib/pipeline/operations/forms/PageNumbersForm.tsx`:
 
 ```tsx
-import type { PageNumberFormOptions } from "../options";
+import type { PageNumbersOptions } from "../options";
 
 const FORMATS = [
     { v: "number", label: "1, 2, 3" },
@@ -742,20 +742,20 @@ const FORMATS = [
 ] as const;
 const POSITIONS = ["bottom-center", "bottom-left", "bottom-right", "top-center", "top-left", "top-right"] as const;
 
-export function PageNumbersForm({ value, onChange }: { value: PageNumberFormOptions; onChange: (v: PageNumberFormOptions) => void }) {
+export function PageNumbersForm({ value, onChange }: { value: PageNumbersOptions; onChange: (v: PageNumbersOptions) => void }) {
     return (
         <div className="space-y-3 text-sm">
             <label className="block">
                 <span className="text-gray-600 dark:text-gray-300">Format</span>
                 <select className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 p-2"
-                    value={value.format} onChange={(e) => onChange({ ...value, format: e.target.value as PageNumberFormOptions["format"] })}>
+                    value={value.format} onChange={(e) => onChange({ ...value, format: e.target.value as PageNumbersOptions["format"] })}>
                     {FORMATS.map((f) => <option key={f.v} value={f.v}>{f.label}</option>)}
                 </select>
             </label>
             <label className="block">
                 <span className="text-gray-600 dark:text-gray-300">Position</span>
                 <select className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 p-2"
-                    value={value.position} onChange={(e) => onChange({ ...value, position: e.target.value as PageNumberFormOptions["position"] })}>
+                    value={value.position} onChange={(e) => onChange({ ...value, position: e.target.value as PageNumbersOptions["position"] })}>
                     {POSITIONS.map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
             </label>
