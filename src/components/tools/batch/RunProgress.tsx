@@ -13,12 +13,13 @@ export function RunProgress({ files, done, total, onCancel }: {
                 <span>{done} of {total} files</span>
                 <button type="button" onClick={onCancel} className="text-gray-500 hover:text-red-500">Cancel</button>
             </div>
-            <div className="h-2 w-full rounded bg-gray-200 dark:bg-gray-700 overflow-hidden">
+            <div className="h-2 w-full rounded bg-gray-200 dark:bg-gray-700 overflow-hidden"
+                role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Batch progress">
                 <div className="h-full bg-primary-500 transition-all" style={{ width: `${pct}%` }} />
             </div>
             <div className="max-h-64 overflow-auto space-y-1">
-                {files.map((f) => (
-                    <div key={f.name} className="flex items-center gap-2 rounded border border-gray-100 dark:border-gray-700 p-2 text-sm">
+                {files.map((f, i) => (
+                    <div key={i} className="flex items-center gap-2 rounded border border-gray-100 dark:border-gray-700 p-2 text-sm">
                         {f.state === "done" && <Check className="w-4 h-4 text-green-600" />}
                         {f.state === "failed" && <X className="w-4 h-4 text-red-500" />}
                         {f.state === "running" && <Loader2 className="w-4 h-4 animate-spin text-primary-500" />}

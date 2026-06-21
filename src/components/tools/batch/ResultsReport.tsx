@@ -31,8 +31,8 @@ export function ResultsReport({ results, onReset }: { results: FileStatus[]; onR
                 </button>
             )}
             <div className="space-y-1">
-                {results.map((r) => (
-                    <div key={r.name} className="flex items-center gap-2 rounded border border-gray-100 dark:border-gray-700 p-2 text-sm">
+                {results.map((r, i) => (
+                    <div key={i} className="flex items-center gap-2 rounded border border-gray-100 dark:border-gray-700 p-2 text-sm">
                         {r.status === "success"
                             ? <Check className="w-4 h-4 text-green-600" />
                             : <X className="w-4 h-4 text-red-500" />}
