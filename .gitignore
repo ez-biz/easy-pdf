@@ -60,3 +60,5 @@ next-env.d.ts
 Thumbs.db
 # Prompts
 /prompts/
+# Brainstorming visual companion
+.superpowers/
