@@ -81,18 +81,15 @@ export default function BatchClient() {
         setCancelled(false);
     }
 
-    const canRun = files.length > 0 && steps.length > 0;
-
-    // Non-blocking ordering nudge (spec: error handling).
-    const orderingWarnings: string[] = [];
     const protectIdx = steps.findIndex((s) => s.opId === "protect");
     const unlockIdx = steps.findIndex((s) => s.opId === "unlock");
-    if (protectIdx !== -1 && protectIdx !== steps.length - 1) {
-        orderingWarnings.push("Protect usually works best as the last step — later steps may fail on an encrypted file.");
-    }
-    if (unlockIdx > 0) {
-        orderingWarnings.push("Unlock usually works best as the first step.");
-    }
+    // Blocking: a Protect step that isn't last would be silently undone by later
+    // re-saving operations, producing an UNENCRYPTED output. Disallow running.
+    const protectNotLast = protectIdx !== -1 && protectIdx !== steps.length - 1;
+    const softWarnings: string[] = [];
+    if (unlockIdx > 0) softWarnings.push("Unlock usually works best as the first step.");
+
+    const canRun = files.length > 0 && steps.length > 0 && !protectNotLast;
 
     return (
         <div className="mx-auto max-w-2xl space-y-6 p-4">
@@ -107,9 +104,15 @@ export default function BatchClient() {
                         label="Drop your PDFs here" />
                     {steps.length > 0 && <StepList steps={steps} onChange={setSteps} />}
                     <OperationPicker onAdd={addStep} />
-                    {orderingWarnings.length > 0 && (
+                    {protectNotLast && (
+                        <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">
+                            <AlertTriangle className="w-4 h-4 inline mr-1" />
+                            Move &ldquo;Protect&rdquo; to the last step. Any operation after it removes the password protection, leaving the output unencrypted.
+                        </div>
+                    )}
+                    {softWarnings.length > 0 && (
                         <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-200">
-                            {orderingWarnings.map((w) => <p key={w}><AlertTriangle className="w-4 h-4 inline mr-1" />{w}</p>)}
+                            {softWarnings.map((w) => <p key={w}><AlertTriangle className="w-4 h-4 inline mr-1" />{w}</p>)}
                         </div>
                     )}
                     {error && <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">{error}</div>}
