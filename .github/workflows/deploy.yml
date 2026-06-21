@@ -25,14 +25,28 @@ jobs:
         env:
           NEXT_PUBLIC_GA_ID: ${{ secrets.NEXT_PUBLIC_GA_ID }}
 
-      - name: Upload to Hostinger via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          timeout: 60000
-          local-dir: ./out/
-          server-dir: ${{ secrets.FTP_DIR }}
+      - name: Upload to Hostinger via FTPS (lftp with resume)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y lftp
+          lftp -c "
+            set ftp:ssl-allow true;
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate false;
+            set ftp:passive-mode true;
+            set net:timeout 20;
+            set net:max-retries 10;
+            set net:persist-retries 10;
+            set net:reconnect-interval-base 5;
+            set net:reconnect-interval-multiplier 1;
+            set xfer:clobber on;
+            open -u '$FTP_USERNAME','$FTP_PASSWORD' 'ftp://$FTP_SERVER';
+            mirror --reverse --verbose --continue --parallel=1 ./out/ '$FTP_DIR';
+            bye
+          "
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_DIR: ${{ secrets.FTP_DIR }}
