@@ -4,6 +4,16 @@
 # server migration removed Apache MultiViews; without this every tool
 # route (/ocr-pdf, /redact-pdf, ...) returns 404.
 
+# Correct MIME types. Hostinger's Apache serves .mjs/.wasm as text/plain,
+# which makes browsers refuse to load them as ES modules / WebAssembly
+# (e.g. "Failed to fetch dynamically imported module" for pdf.worker.min.mjs,
+# and the onnxruntime-web OCR runtime under /ort/).
+<IfModule mod_mime.c>
+  AddType text/javascript .js .mjs
+  AddType application/wasm .wasm
+  AddType application/json .json .map
+</IfModule>
+
 Options -MultiViews
 RewriteEngine On
 
