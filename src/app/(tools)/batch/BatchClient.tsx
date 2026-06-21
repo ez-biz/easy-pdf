@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { OperationPicker } from "@/components/tools/batch/OperationPicker";
 import { StepList } from "@/components/tools/batch/StepList";
@@ -20,37 +21,64 @@ export default function BatchClient() {
     const [progress, setProgress] = useState<FileProgress[]>([]);
     const [done, setDone] = useState(0);
     const [results, setResults] = useState<FileStatus[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [cancelled, setCancelled] = useState(false);
     const abortRef = useRef<AbortController | null>(null);
+    const runningRef = useRef(false);
 
     function addStep(opId: string) {
         setSteps((s) => [...s, { id: generateId(), opId, options: structuredClone(OPERATIONS[opId].defaultOptions) }]);
     }
 
     async function run() {
-        const inputs: PipelineInput[] = await Promise.all(
-            files.map(async (f) => ({ name: f.file.name, bytes: new Uint8Array(await f.file.arrayBuffer()) })),
-        );
-        setProgress(inputs.map((i) => ({ name: i.name, state: "queued" as const })));
-        setDone(0);
-        setPhase("running");
-        const controller = new AbortController();
-        abortRef.current = controller;
+        if (runningRef.current) return;
+        runningRef.current = true;
+        try {
+            setError(null);
 
-        const res = await runPipeline(inputs, steps, OPERATIONS, (e) => {
-            if (e.type === "file-start") {
-                setProgress((p) => p.map((x, i) => (i === e.fileIndex ? { ...x, state: "running" } : x)));
-            } else if (e.type === "file-done") {
-                setProgress((p) => p.map((x, i) => (i === e.fileIndex ? { ...x, state: e.status.status === "success" ? "done" : "failed" } : x)));
-                setDone((d) => d + 1);
+            let inputs: PipelineInput[];
+            try {
+                // v1 reads all files into memory up front; fine for the current file/count limits. Revisit (sequential read) if limits grow.
+                inputs = await Promise.all(
+                    files.map(async (f) => ({ name: f.file.name, bytes: new Uint8Array(await f.file.arrayBuffer()) })),
+                );
+            } catch {
+                setError("Couldn't read one or more files. Please re-add them and try again.");
+                return;
             }
-        }, controller.signal);
 
-        setResults(res);
-        setPhase("results");
+            setProgress(inputs.map((i) => ({ name: i.name, state: "queued" as const })));
+            setDone(0);
+            setPhase("running");
+            const controller = new AbortController();
+            abortRef.current = controller;
+
+            const res = await runPipeline(inputs, steps, OPERATIONS, (e) => {
+                if (e.type === "file-start") {
+                    setProgress((p) => p.map((x, i) => (i === e.fileIndex ? { ...x, state: "running" } : x)));
+                } else if (e.type === "file-done") {
+                    setProgress((p) => p.map((x, i) => (i === e.fileIndex ? { ...x, state: e.status.status === "success" ? "done" : "failed" } : x)));
+                    setDone((d) => d + 1);
+                }
+            }, controller.signal);
+
+            setCancelled(controller.signal.aborted);
+            setResults(res);
+            setPhase("results");
+        } finally {
+            runningRef.current = false;
+        }
     }
 
     function reset() {
-        setSteps([]); setFiles([]); setResults([]); setProgress([]); setDone(0); setPhase("build");
+        setSteps([]);
+        setFiles([]);
+        setResults([]);
+        setProgress([]);
+        setDone(0);
+        setPhase("build");
+        setError(null);
+        setCancelled(false);
     }
 
     const canRun = files.length > 0 && steps.length > 0;
@@ -81,9 +109,10 @@ export default function BatchClient() {
                     <OperationPicker onAdd={addStep} />
                     {orderingWarnings.length > 0 && (
                         <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-200">
-                            {orderingWarnings.map((w) => <p key={w}>⚠ {w}</p>)}
+                            {orderingWarnings.map((w) => <p key={w}><AlertTriangle className="w-4 h-4 inline mr-1" />{w}</p>)}
                         </div>
                     )}
+                    {error && <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">{error}</div>}
                     <button type="button" disabled={!canRun} onClick={run}
                         className="w-full rounded-lg bg-primary-500 p-3 text-white font-medium disabled:opacity-40 hover:bg-primary-600">
                         Run on {files.length} file{files.length === 1 ? "" : "s"}
@@ -93,10 +122,16 @@ export default function BatchClient() {
 
             {phase === "running" && (
                 <RunProgress files={progress} done={done} total={progress.length}
+                    // Cancel takes effect between files; a step already running on the current file runs to completion.
                     onCancel={() => abortRef.current?.abort()} />
             )}
 
-            {phase === "results" && <ResultsReport results={results} onReset={reset} />}
+            {phase === "results" && (
+                <>
+                    {cancelled && <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-200">Run cancelled — only the files completed before cancelling are included.</div>}
+                    <ResultsReport results={results} onReset={reset} />
+                </>
+            )}
         </div>
     );
 }
