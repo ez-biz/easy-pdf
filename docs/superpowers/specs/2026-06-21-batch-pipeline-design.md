@@ -151,9 +151,11 @@ stepper**, single column (matches existing tools, mobile-first).
 - **Per-file isolation:** a file failing any step is marked failed (with step +
   reason) and excluded from the zip; other files continue.
 - The engine records failures rather than throwing.
-- **Ordering nudge (non-blocking):** warn if "Protect" is not the last step or
-  "Unlock" is not the first, since those orderings usually break later steps.
-  The user can proceed anyway.
+- **Ordering rules:**
+  - **Protect not last → blocking.** A re-saving operation after Protect silently
+    strips the encryption, producing an unencrypted output the user believes is
+    protected. Running is disabled (red banner) until Protect is the last step.
+  - **Unlock not first → soft nudge.** Non-blocking amber hint; the user can proceed.
 - Empty states: disable Run when there are no files or no steps.
 
 ## Testing (TDD)
