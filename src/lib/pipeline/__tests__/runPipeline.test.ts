@@ -75,4 +75,14 @@ describe("runPipeline", () => {
         const res = await runPipeline([input("f.pdf", [0])], [step("a")], ops, undefined, controller.signal);
         expect(res).toHaveLength(0);
     });
+
+    it("records an unknown operation id as a per-file failure", async () => {
+        const res = await runPipeline([input("f.pdf", [0])], [step("missing")], {});
+        expect(res[0].status).toBe("failed");
+        if (res[0].status === "failed") {
+            expect(res[0].opId).toBe("missing");
+            expect(res[0].failedStepIndex).toBe(0);
+            expect(res[0].error).toBe("Unknown operation: missing");
+        }
+    });
 });
