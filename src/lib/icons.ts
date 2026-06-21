@@ -23,6 +23,7 @@ import {
     Presentation,
     ScanText,
     Camera,
+    Eraser,
     LucideIcon,
 } from "lucide-react";
 
@@ -51,6 +52,7 @@ export const ICON_MAP: Record<string, LucideIcon> = {
     Presentation,
     ScanText,
     Camera,
+    Eraser,
 };
 
 export function getToolIcon(iconName: string): LucideIcon {
