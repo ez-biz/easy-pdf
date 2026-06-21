@@ -3,11 +3,12 @@ import { addTextWatermark } from "@/lib/pdf/watermark";
 import type { PdfOperation } from "../types";
 import type { WatermarkOptions } from "./options";
 import { bytesToFile } from "./bytes";
+import { WatermarkForm } from "./forms/WatermarkForm";
 
 export const watermarkOp: PdfOperation<WatermarkOptions> = {
     id: "watermark", label: "Watermark", icon: Droplets,
     defaultOptions: { text: "CONFIDENTIAL", opacity: 0.3, position: "diagonal" },
-    OptionsForm: (() => null) as never,
+    OptionsForm: WatermarkForm,
     async run(input, options) {
         const res = await addTextWatermark(bytesToFile(input), {
             text: options.text, opacity: options.opacity, position: options.position,

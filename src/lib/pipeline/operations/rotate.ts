@@ -4,11 +4,12 @@ import { rotatePDF, type RotationAngle } from "@/lib/pdf/rotate";
 import type { PdfOperation } from "../types";
 import type { RotateOptions } from "./options";
 import { bytesToFile } from "./bytes";
+import { RotateForm } from "./forms/RotateForm";
 
 export const rotateOp: PdfOperation<RotateOptions> = {
     id: "rotate", label: "Rotate", icon: RotateCw,
     defaultOptions: { angle: 90, scope: "all" },
-    OptionsForm: (() => null) as never,
+    OptionsForm: RotateForm,
     async run(input, options) {
         const file = bytesToFile(input);
         let rotations: Map<number, RotationAngle> | RotationAngle = options.angle;

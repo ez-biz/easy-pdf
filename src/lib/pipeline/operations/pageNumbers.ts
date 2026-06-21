@@ -3,11 +3,12 @@ import { addPageNumbers } from "@/lib/pdf/pageNumbers";
 import type { PdfOperation } from "../types";
 import type { PageNumbersOptions } from "./options";
 import { bytesToFile } from "./bytes";
+import { PageNumbersForm } from "./forms/PageNumbersForm";
 
 export const pageNumbersOp: PdfOperation<PageNumbersOptions> = {
     id: "page-numbers", label: "Page numbers", icon: Hash,
     defaultOptions: { format: "number", position: "bottom-center", startNumber: 1 },
-    OptionsForm: (() => null) as never,
+    OptionsForm: PageNumbersForm,
     async run(input, options) {
         const res = await addPageNumbers(bytesToFile(input), {
             format: options.format, position: options.position, startNumber: options.startNumber,

@@ -3,11 +3,12 @@ import { protectPDF } from "@/lib/pdf/security";
 import type { PdfOperation } from "../types";
 import type { PasswordOptions } from "./options";
 import { bytesToFile } from "./bytes";
+import { PasswordForm } from "./forms/PasswordForm";
 
 export const protectOp: PdfOperation<PasswordOptions> = {
     id: "protect", label: "Protect", icon: Lock,
     defaultOptions: { password: "" },
-    OptionsForm: (() => null) as never,
+    OptionsForm: PasswordForm,
     async run(input, options) {
         if (!options.password) throw new Error("Password required");
         const res = await protectPDF(bytesToFile(input), { userPassword: options.password });
