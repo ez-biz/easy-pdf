@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { runPipeline } from "../runPipeline";
 import type { PdfOperation, PipelineInput, PipelineStep, ProgressEvent } from "../types";
 
