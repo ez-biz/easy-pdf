@@ -54,4 +54,11 @@ describe("operations registry", () => {
         const protectedBytes = await OPERATIONS.protect.run(await samplePdf(1), { password: "right" });
         await expect(OPERATIONS.unlock.run(protectedBytes, { password: "wrong" })).rejects.toThrow();
     });
+
+    it("watermark produces a valid same-page-count PDF", async () => {
+        const out = await OPERATIONS.watermark.run(await samplePdf(2), {
+            text: "CONFIDENTIAL", opacity: 0.3, position: "diagonal",
+        });
+        expect(await isValidPdf(out)).toBe(2);
+    });
 });

@@ -8,9 +8,10 @@ import { protectOp } from "./protect";
 import { unlockOp } from "./unlock";
 
 // Order shown in the "Add operation" picker.
-export const OPERATION_LIST: PdfOperation[] = [
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const OPERATION_LIST: PdfOperation<any>[] = [
     compressOp, rotateOp, watermarkOp, pageNumbersOp, metadataOp, protectOp, unlockOp,
-] as PdfOperation[];
+];
 
 export const OPERATIONS: Record<string, PdfOperation> = Object.fromEntries(
     OPERATION_LIST.map((op) => [op.id, op]),

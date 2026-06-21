@@ -13,6 +13,7 @@ export const rotateOp: PdfOperation<RotateOptions> = {
         const file = bytesToFile(input);
         let rotations: Map<number, RotationAngle> | RotationAngle = options.angle;
         if (options.scope !== "all") {
+                // Parse once here to count pages for odd/even selection; rotatePDF parses again internally.
             const count = (await PDFDocument.load(input)).getPageCount();
             const map = new Map<number, RotationAngle>();
             for (let i = 0; i < count; i++) {

@@ -1,10 +1,10 @@
 import { Hash } from "lucide-react";
 import { addPageNumbers } from "@/lib/pdf/pageNumbers";
 import type { PdfOperation } from "../types";
-import type { PageNumberFormOptions } from "./options";
+import type { PageNumbersOptions } from "./options";
 import { bytesToFile } from "./bytes";
 
-export const pageNumbersOp: PdfOperation<PageNumberFormOptions> = {
+export const pageNumbersOp: PdfOperation<PageNumbersOptions> = {
     id: "page-numbers", label: "Page numbers", icon: Hash,
     defaultOptions: { format: "number", position: "bottom-center", startNumber: 1 },
     OptionsForm: (() => null) as never,
