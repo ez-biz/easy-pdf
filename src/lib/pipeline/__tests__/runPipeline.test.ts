@@ -68,12 +68,39 @@ describe("runPipeline", () => {
         expect(events.map((e) => e.type)).toEqual(["file-start", "step-done", "file-done"]);
     });
 
-    it("stops scheduling further files once aborted; keeps completed", async () => {
+    it("does not start any file when the signal is already aborted", async () => {
         const ops = { a: appendByte("a", 1) };
         const controller = new AbortController();
         controller.abort();
         const res = await runPipeline([input("f.pdf", [0])], [step("a")], ops, undefined, controller.signal);
         expect(res).toHaveLength(0);
+    });
+
+    it("aborting mid-run keeps already-completed files and skips the rest", async () => {
+        const ops = { a: appendByte("a", 1) };
+        const controller = new AbortController();
+        // Abort right after the first file finishes, before the second starts.
+        const onProgress = (e: ProgressEvent) => {
+            if (e.type === "file-done" && e.fileIndex === 0) controller.abort();
+        };
+        const res = await runPipeline(
+            [input("a.pdf", [0]), input("b.pdf", [0])],
+            [step("a")],
+            ops,
+            onProgress,
+            controller.signal,
+        );
+        expect(res).toHaveLength(1);
+        expect(res[0].name).toBe("a.pdf");
+    });
+
+    it("returns the input unchanged when there are no steps", async () => {
+        const res = await runPipeline([input("f.pdf", [7, 8])], [], {});
+        expect(res[0].status).toBe("success");
+        if (res[0].status === "success") {
+            expect([...res[0].bytes]).toEqual([7, 8]);
+            expect(res[0].stepsRun).toBe(0);
+        }
     });
 
     it("records an unknown operation id as a per-file failure", async () => {
