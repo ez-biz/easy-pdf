@@ -66,6 +66,15 @@ export const TOOLS: Tool[] = [
         category: "organize",
         color: "from-orange-500 to-orange-600",
     },
+    {
+        id: "batch-pdf",
+        name: "Batch Process",
+        description: "Chain operations across many PDFs at once",
+        href: "/batch",
+        icon: "Workflow",
+        category: "organize",
+        color: "from-violet-500 to-violet-600",
+    },
 
     // Convert
     {
