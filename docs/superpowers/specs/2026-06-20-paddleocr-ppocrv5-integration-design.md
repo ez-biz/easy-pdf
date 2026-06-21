@@ -32,34 +32,34 @@ The user originally linked `PaddlePaddle/PP-OCRv6_medium_det_safetensors`. Key c
 
 ## 2. Chosen Library
 
-**`client-side-ocr`** (npm; GitHub: `siva-sub/client-ocr`), v2.x (Jul 2025, actively maintained). The exact published package name is to be confirmed in the spike (§4), since the project also publishes related packages.
+**`ppu-paddle-ocr`** (npm, v5.8.3) + `onnxruntime-web` (peer). PP-OCRv5 ONNX models run via ONNX Runtime Web (WebGPU with automatic WASM fallback). Verified usable in a spike (entry points exist on disk; imports cleanly in jsdom; real typed API) — ~360 KB package, single dep `ppu-ocv`, zero new audit vulnerabilities.
 
-- PP-OCRv4 **and PP-OCRv5** ONNX models via ONNX Runtime Web (WASM, optional WebGPU acceleration with automatic WASM fallback).
-- 100+ languages — covers and extends the tool's current 11-language dropdown.
-- Built-in Web Worker support ("ONNX Detection Worker" / "ONNX Recognition Worker").
-- Automatic model caching with SHA256 verification.
+> **History:** the originally-chosen `client-side-ocr@2.1.0` was found in the spike to be **broken as published** (declared entry points `dist/index.js`/`.d.ts` do not exist — only a built demo app ships), un-importable, and pulled in ~1298 packages / 38 audit vulnerabilities. It was removed. `@paddleocr/paddleocr-js` (official, 23.8 MB) remains the documented fallback if `ppu-paddle-ocr` proves insufficient.
 
-**API shape (confirmed):**
+**API shape (confirmed from installed `.d.ts`):**
 
 ```ts
-import { createRapidOCREngine } from 'client-side-ocr';
+import { PaddleOcrService } from 'ppu-paddle-ocr/web';
 
-const ocr = createRapidOCREngine({
-  language: 'en',            // 'ch', 'fr', 'de', 'ja', 'ko', ...
-  modelVersion: 'PP-OCRv5',
+const service = new PaddleOcrService({
+  // Self-hosted PP-OCRv5 models (see §4); omit to auto-fetch defaults from GitHub.
+  model: {
+    detection: '/models/ppocr/det.ort',
+    recognition: '/models/ppocr/rec.ort',
+    charactersDictionary: '/models/ppocr/dict.txt',
+  },
 });
-await ocr.initialize();
+await service.initialize();
 
-const result = await ocr.processImage(imageOrCanvas, {
-  enableWordSegmentation: true,
-  returnConfidence: true,
-});
-// result: { text, confidence, lines, wordBoxes, angle, processingTime }
+const result = await service.recognize(arrayBuffer /* ArrayBuffer | CanvasLike */, {});
+// result: { text, lines: RecognitionResult[][], confidence }
+// RecognitionResult = { text, box: {x,y,width,height}, confidence }
 ```
 
-**Alternatives considered & rejected:**
-- `@paddleocr/paddleocr-js` (official) — authoritative and PP-OCRv5, but less clear language breadth and more setup. Kept as a documented fallback option if `client-side-ocr` proves unsuitable during the spike.
-- `@gutenye/ocr-browser` — PP-OCRv4 only, stale (~2024).
+Key API facts that shape the design:
+- **Recognize input is `ArrayBuffer | CanvasLike`** — no `File`/`Blob` overload, so the wrapper converts the rendered page canvas to an `ArrayBuffer` (PNG blob → `arrayBuffer()`).
+- **Language is selected by the model, not a string param.** Switching languages means pointing `model.recognition` + `model.charactersDictionary` at a different PP-OCRv5 model/dictionary (detection is shared/language-agnostic). For **v1 we ship only the default PP-OCRv5 model** (Latin script: English + major European languages); **Tesseract remains the fallback for everything else** (Chinese, Japanese, Korean, Hindi, Arabic, …). The exact default-model language coverage is confirmed in §4 / Task 7.
+- `onnxruntime-web` is an optional peer the web build requires; it ships `.wasm` assets to self-host.
 
 ---
 
@@ -78,57 +78,47 @@ A small abstraction so both engines are interchangeable and testable:
   }
   export interface OcrEngine {
     init(lang: string, onProgress?: (p: number, stage: string) => void): Promise<void>;
-    recognize(image: ImageBitmap, lang: string): Promise<OcrPageResult>;
+    recognize(canvas: HTMLCanvasElement, lang: string): Promise<OcrPageResult>;
     terminate(): void;
   }
   export type OcrEngineId = 'paddle' | 'tesseract';
   ```
-- **`paddleEngine.ts`** — wraps `client-side-ocr`; lazy singleton; maps UI language codes → PaddleOCR codes; normalizes `processImage` output into `OcrPageResult`.
+- **`paddleEngine.ts`** — wraps `ppu-paddle-ocr/web` (`PaddleOcrService`); lazy singleton; loads the self-hosted default PP-OCRv5 model; converts the page canvas to an `ArrayBuffer`; normalizes `recognize()` output into `OcrPageResult`. (v1 uses the single default model, so `lang` is informational for paddle.)
 - **`tesseractEngine.ts`** — the current Tesseract logic refactored behind `OcrEngine`.
-- **`languages.ts`** — single source of truth mapping `{ uiCode, label, tesseractCode, paddleCode? }`. Drives the dropdown and per-engine availability.
-- **`index.ts`** — `getEngine(id: OcrEngineId): OcrEngine` selector.
+- **`languages.ts`** — single source of truth mapping `{ uiCode, label, tesseractCode, paddleSupported }`. `paddleSupported` marks languages the default PP-OCRv5 model covers (Latin-script v1). Drives the dropdown and per-engine availability.
+- **`index.ts`** — `getEngine(id: OcrEngineId): OcrEngine` selector + `joinPages()`.
 
-### 3.2 Worker (`src/lib/ocr/ocr.worker.ts`)
+### 3.2 No custom wrapper worker  *(revised — see note)*
 
-A dedicated Web Worker that owns the chosen engine and runs recognition off the main thread. Message protocol mirrors the existing `useConversionWorker.ts` pattern:
+> **Revised during planning.** The original design proposed a custom `src/lib/ocr/ocr.worker.ts` + `useOcrWorker` hook. Both `onnxruntime-web` (which `ppu-paddle-ocr` uses) and `tesseract.js` already run their heavy compute off the main thread (ONNX WASM/WebGPU sessions; Tesseract's worker). Wrapping them in another app-level worker would nest `onnxruntime-web` in a worker-of-a-worker — fragile under Next's webpack — for no benefit. So we **drop the custom wrapper worker**. The engine abstraction is called directly from the main thread; the libraries keep the actual inference off it.
 
-- **Request:** `{ id, engine: OcrEngineId, lang, bitmap: ImageBitmap, pageIndex, totalPages }` (bitmap transferred, not copied).
-- **Responses:** `{ id, type: 'progress', progress, stage }`, `{ id, type: 'result', text, confidence }`, `{ id, type: 'error', error }`.
+Each engine is loaded lazily via dynamic `import()` so the model weights / `onnxruntime-web` runtime only load when OCR runs, not in the initial bundle. `engine.init(lang, onProgress)` performs (and reports progress for) the one-time model load.
 
-Model loading (download/init) happens inside the worker on the first `recognize` for a given engine+lang, emitting `progress`/`stage` so the UI can show a "Downloading OCR model…" phase.
-
-### 3.3 Hook (`src/hooks/useOcrWorker.ts`)
-
-Drives the worker — exposes `{ progress, stage, isProcessing, recognizePage(...) }` and lifecycle/termination — mirroring `usePDFWorker.ts` / `useConversionWorker.ts`.
-
-### 3.4 Data flow
+### 3.3 Data flow
 
 ```
-OcrClient
-  → pdfjs renders page N to <canvas>  (main thread, light)
-  → createImageBitmap(canvas)
-  → postMessage(bitmap) [transferred]  → ocr.worker
-                                           → engine.init (lazy, first run)
-                                           → engine.recognize(bitmap)
-                                           ← { text, confidence }
-  ← accumulate page text → join → display / copy / download .txt
+OcrClient (main thread)
+  → pdfjs renders page N to <canvas>           (light)
+  → engine.init(lang, onProgress)              (first run only; lazy import + model load)
+  → engine.recognize(canvas, lang)             (library offloads ONNX/Tesseract to its own worker)
+  ← { text, confidence }
+  ← accumulate page text → joinPages() → display / copy / download .txt
 ```
 
-PDF parsing/rasterization stays on the main thread (pdfjs already uses its own worker for parsing). Only the heavy ONNX inference moves to the OCR worker.
+PDF parsing/rasterization stays on the main thread (pdfjs already uses its own worker for parsing). The heavy ONNX/Tesseract inference runs in each library's internal worker.
 
 ---
 
-## 4. Model Hosting & Assets  *(primary risk)*
+## 4. Model Hosting & Assets
 
-PP-OCRv5 ONNX models + `onnxruntime-web` WASM total roughly **15–30MB** (det ~4–5MB, rec ~8–17MB, cls ~0.5MB).
+Self-hosting is **confirmed supported** via `PaddleOptions.model` (`detection`, `recognition`, `charactersDictionary` URLs/buffers). Plan:
 
-**Spike first:** confirm whether `createRapidOCREngine` accepts a custom model base path / URL.
+- **Self-host the default PP-OCRv5 model files** (detection + recognition + dictionary) under `public/models/ppocr/`, and point `PaddleOcrService` at those `/models/ppocr/*` paths. By default `ppu-paddle-ocr` would fetch them from GitHub; self-hosting keeps everything on our origin.
+- **Self-host the `onnxruntime-web` `.wasm` assets** under `public/` and set `ort.env.wasm.wasmPaths` so no runtime is fetched from a CDN.
+- **Confirm default-model language coverage** (Task 7): the default appears to be the Latin-script PP-OCRv5 model (English + major European languages). `languages.ts` marks exactly those as `paddleSupported`; everything else routes to Tesseract.
+- **Offline (PWA):** `ppu-paddle-ocr` `fetch()`es models each load relying on HTTP cache; to guarantee offline reuse we add a `runtimeCaching` rule (`CacheFirst`) to `@ducanh2912/next-pwa` for `/models/ppocr/*` and the ort `.wasm`. (Its built-in Node `~/.cache` does not apply in-browser.)
 
-- **If configurable:** self-host models under `public/models/ppocr/` and the onnxruntime-web WASM under `public/` (or the library's expected path), and point the engine there. Result: fully offline, **nothing fetched from any external host**.
-- **If not configurable:** allow the library to download models from its CDN **once on first run**, then rely on the existing PWA service worker (`@ducanh2912/next-pwa`) Cache API to persist them for offline reuse.
-  - **Privacy framing (must be accurate):** only model *weights* are downloaded; **user PDF files never leave the browser**. The "files never leave your device" promise is preserved. This nuance should be reflected in any user-facing copy if first-run download is used.
-
-**Lazy loading (both cases):** models are fetched only when the user clicks "Extract Text" — never in the initial JS bundle. The initial page load is unaffected.
+**Lazy loading:** models load only when the user runs OCR (dynamic `import()` of the engine + first `initialize()`), never in the initial JS bundle. **User PDF files never leave the browser** in any case — only model weights are served, from our own origin.
 
 ---
 

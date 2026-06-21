@@ -22,6 +22,9 @@ node_modules/
 /build
 /dist
 
+# onnxruntime-web wasm — copied from node_modules by `npm run copy-ort` (too large to commit)
+/public/ort/
+
 # Misc
 .DS_Store
 *.pem

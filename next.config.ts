@@ -6,6 +6,20 @@ const withPWA = withPWAInit({
     dest: "public",
     disable: process.env.NODE_ENV === "development",
     register: true,
+    workboxOptions: {
+        runtimeCaching: [
+            {
+                // Self-hosted OCR models + onnxruntime-web wasm — cache for offline reuse.
+                urlPattern: /\/(?:models\/ppocr|ort)\/.*\.(?:ort|onnx|wasm|mjs|txt)$/i,
+                handler: "CacheFirst",
+                options: {
+                    cacheName: "ocr-assets",
+                    expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 90 },
+                    cacheableResponse: { statuses: [0, 200] },
+                },
+            },
+        ],
+    },
 });
 
 const withNextra = nextra({

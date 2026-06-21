@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ScanText } from "lucide-react";
-import Tesseract from "tesseract.js";
 import * as pdfjsLib from "pdfjs-dist";
 import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
@@ -13,29 +12,19 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
 import { downloadBlob } from "@/lib/utils";
 import { useToast } from "@/contexts/ToastContext";
+import { getEngine, joinPages } from "@/lib/ocr";
+import { OCR_LANGUAGES, getTesseractCode, isSupportedBy } from "@/lib/ocr/languages";
+import type { OcrEngineId } from "@/lib/ocr/types";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
     "pdfjs-dist/legacy/build/pdf.worker.mjs",
     import.meta.url
 ).toString();
 
-const LANGUAGES = [
-    { value: "eng", label: "English" },
-    { value: "spa", label: "Spanish" },
-    { value: "fra", label: "French" },
-    { value: "deu", label: "German" },
-    { value: "ita", label: "Italian" },
-    { value: "por", label: "Portuguese" },
-    { value: "hin", label: "Hindi" },
-    { value: "jpn", label: "Japanese" },
-    { value: "kor", label: "Korean" },
-    { value: "chi_sim", label: "Chinese (Simplified)" },
-    { value: "ara", label: "Arabic" },
-];
-
 export default function OcrClient() {
     const [files, setFiles] = useState<FileWithPreview[]>([]);
     const [language, setLanguage] = useState("eng");
+    const [engineId, setEngineId] = useState<OcrEngineId>("paddle");
     const [result, setResult] = useState<{ text: string; blob: Blob } | null>(null);
     const [progress, setProgress] = useState(0);
     const [stage, setStage] = useState("");
@@ -45,31 +34,49 @@ export default function OcrClient() {
 
     const file = files[0]?.file;
 
+    // If the chosen engine can't handle the current language, fall back to English.
+    useEffect(() => {
+        if (!isSupportedBy(engineId, language)) {
+            setLanguage("eng");
+        }
+    }, [engineId, language]);
+
     const handleFilesChange = useCallback((newFiles: FileWithPreview[]) => {
         setFiles(newFiles.slice(0, 1));
         setResult(null);
         setError(null);
     }, []);
 
-    const handleOcr = async () => {
+    const runOcr = async (useEngine: OcrEngineId) => {
         if (!file) {
             setError("Please upload a PDF file");
             return;
         }
+        if (!isSupportedBy(useEngine, language)) {
+            setError("Selected language isn't available for this engine. Switch engine or language.");
+            return;
+        }
+        // Tesseract needs its language code; the PaddleOCR default model is
+        // language-agnostic, so we pass the UI code through (the engine ignores it).
+        const langArg = useEngine === "tesseract" ? getTesseractCode(language)! : language;
 
         setIsProcessing(true);
         setProgress(0);
-        setStage("Loading PDF...");
+        setStage(useEngine === "paddle" ? "Loading OCR model…" : "Loading PDF…");
         setError(null);
 
+        const engine = getEngine(useEngine);
+
         try {
+            await engine.init(langArg, (_p, s) => setStage(s));
+
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
             const totalPages = pdf.numPages;
             const allText: string[] = [];
 
             for (let i = 1; i <= totalPages; i++) {
-                setStage(`Processing page ${i} of ${totalPages}...`);
+                setStage(`Processing page ${i} of ${totalPages}…`);
 
                 const page = await pdf.getPage(i);
                 const viewport = page.getViewport({ scale: 2.0 });
@@ -81,22 +88,32 @@ export default function OcrClient() {
 
                 await page.render({ canvasContext: context, viewport }).promise;
 
-                const { data } = await Tesseract.recognize(canvas, language);
-                allText.push(data.text);
+                const { text } = await engine.recognize(canvas, langArg);
+                allText.push(text);
 
                 setProgress(Math.round((i / totalPages) * 100));
             }
 
-            const text = allText.join("\n\n--- Page Break ---\n\n");
+            const text = joinPages(allText);
             const blob = new Blob([text], { type: "text/plain" });
             setResult({ text, blob });
             setStage("");
         } catch (err) {
-            setError(err instanceof Error ? err.message : "An error occurred during OCR processing");
+            const message = err instanceof Error ? err.message : "An error occurred during OCR processing";
+            if (useEngine === "paddle") {
+                // High-accuracy engine failed — fall back to Tesseract rather than dead-ending.
+                setError(`High-accuracy engine failed: ${message}. Retrying with Tesseract…`);
+                setIsProcessing(false);
+                await runOcr("tesseract");
+                return;
+            }
+            setError(message);
         } finally {
             setIsProcessing(false);
         }
     };
+
+    const handleOcr = () => runOcr(engineId);
 
     const handleDownload = () => {
         if (result && file) {
@@ -145,6 +162,34 @@ export default function OcrClient() {
                             animate={{ opacity: 1, y: 0 }}
                             className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-200 dark:border-surface-700"
                         >
+                            <span className="block font-semibold text-surface-900 dark:text-white mb-3">OCR Engine</span>
+                            <div className="grid grid-cols-2 gap-3 mb-6">
+                                {([
+                                    { id: "paddle", title: "High accuracy", sub: "PaddleOCR PP-OCRv5" },
+                                    { id: "tesseract", title: "Fast", sub: "Tesseract" },
+                                ] as const).map((opt) => (
+                                    <button
+                                        key={opt.id}
+                                        type="button"
+                                        onClick={() => setEngineId(opt.id)}
+                                        aria-pressed={engineId === opt.id}
+                                        className={`rounded-xl border p-3 text-left transition focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:outline-none ${
+                                            engineId === opt.id
+                                                ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
+                                                : "border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900"
+                                        }`}
+                                    >
+                                        <span className="block font-medium text-surface-900 dark:text-white">{opt.title}</span>
+                                        <span className="block text-xs text-surface-500">{opt.sub}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            {engineId === "paddle" && (
+                                <p className="mb-6 text-xs text-surface-500">
+                                    First run loads the OCR model once (~13&nbsp;MB), then works offline. Your files never leave your browser.
+                                </p>
+                            )}
+
                             <label htmlFor="ocr-language" className="block font-semibold text-surface-900 dark:text-white mb-4">OCR Language</label>
                             <select
                                 id="ocr-language"
@@ -152,11 +197,15 @@ export default function OcrClient() {
                                 onChange={(e) => setLanguage(e.target.value)}
                                 className="w-full p-3 rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 text-surface-900 dark:text-white focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:outline-none"
                             >
-                                {LANGUAGES.map((lang) => (
-                                    <option key={lang.value} value={lang.value}>
-                                        {lang.label}
-                                    </option>
-                                ))}
+                                {OCR_LANGUAGES.map((lang) => {
+                                    const supported = isSupportedBy(engineId, lang.uiCode);
+                                    return (
+                                        <option key={lang.uiCode} value={lang.uiCode} disabled={!supported}>
+                                            {lang.label}
+                                            {!supported ? " (not in this engine)" : ""}
+                                        </option>
+                                    );
+                                })}
                             </select>
                         </motion.div>
                     )}
