@@ -12,6 +12,8 @@ import type { FileStatus, PipelineInput, PipelineStep } from "@/lib/pipeline/typ
 import type { FileWithPreview } from "@/types/tools";
 import { generateId } from "@/lib/utils";
 import { PrimaryAction } from "@/components/tools/PrimaryAction";
+import { MobileActionProvider } from "@/components/layout/MobileActionContext";
+import { MobileActionBar } from "@/components/layout/MobileActionBar";
 
 type Phase = "build" | "running" | "results";
 
@@ -93,7 +95,8 @@ export default function BatchClient() {
     const canRun = files.length > 0 && steps.length > 0 && !protectNotLast;
 
     return (
-        <div className="mx-auto max-w-2xl space-y-6 p-4">
+        <MobileActionProvider>
+        <div className="mx-auto max-w-2xl space-y-6 p-4 pb-28 md:pb-8">
             <header>
                 <h1 className="text-2xl font-bold">Batch Process</h1>
                 <p className="text-gray-500">Run a chain of operations across many PDFs at once.</p>
@@ -140,5 +143,7 @@ export default function BatchClient() {
                 </>
             )}
         </div>
+        <MobileActionBar />
+        </MobileActionProvider>
     );
 }
