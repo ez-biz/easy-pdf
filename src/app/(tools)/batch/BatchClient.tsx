@@ -11,6 +11,7 @@ import { runPipeline } from "@/lib/pipeline/runPipeline";
 import type { FileStatus, PipelineInput, PipelineStep } from "@/lib/pipeline/types";
 import type { FileWithPreview } from "@/types/tools";
 import { generateId } from "@/lib/utils";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 
 type Phase = "build" | "running" | "results";
 
@@ -116,10 +117,13 @@ export default function BatchClient() {
                         </div>
                     )}
                     {error && <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">{error}</div>}
-                    <button type="button" disabled={!canRun} onClick={run}
-                        className="w-full rounded-lg bg-primary-500 p-3 text-white font-medium disabled:opacity-40 hover:bg-primary-600">
-                        Run on {files.length} file{files.length === 1 ? "" : "s"}
-                    </button>
+                    <PrimaryAction
+                        onClick={run}
+                        disabled={!canRun}
+                        context={`${files.length} file${files.length === 1 ? "" : "s"} · ${steps.length} step${steps.length === 1 ? "" : "s"}`}
+                    >
+                        {`Run on ${files.length} file${files.length === 1 ? "" : "s"}`}
+                    </PrimaryAction>
                 </>
             )}
 
