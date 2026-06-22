@@ -7,6 +7,7 @@ import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
 import { unlockPDF } from "@/lib/pdf/security";
@@ -169,9 +170,13 @@ export default function UnlockClient() {
                     {/* Action Button */}
                     {files.length > 0 && password && !isProcessing && (
                         <div className="flex justify-center">
-                            <Button onClick={handleUnlock} size="lg">
+                            <PrimaryAction
+                                onClick={handleUnlock}
+                                loading={isProcessing}
+                                context="1 file ready"
+                            >
                                 Unlock PDF
-                            </Button>
+                            </PrimaryAction>
                         </div>
                     )}
                 </div>

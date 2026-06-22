@@ -7,6 +7,7 @@ import { FileUploader } from "@/components/tools/FileUploader";
 import { ConversionProgress } from "@/components/tools/ConversionProgress";
 import { ConversionResult } from "@/components/tools/ConversionResult";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { FileWithPreview } from "@/types/tools";
 import { downloadBlob, createPdfBlob } from "@/lib/utils";
 import { useToast } from "@/contexts/ToastContext";
@@ -106,9 +107,13 @@ export default function ExcelToPdfClient() {
                             <Button variant="secondary" onClick={handleReset}>
                                 Clear
                             </Button>
-                            <Button onClick={handleConvert} size="lg">
+                            <PrimaryAction
+                                onClick={handleConvert}
+                                loading={isProcessing}
+                                context="1 file ready"
+                            >
                                 Convert to PDF
-                            </Button>
+                            </PrimaryAction>
                         </div>
                     )}
                 </div>

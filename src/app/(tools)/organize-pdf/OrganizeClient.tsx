@@ -6,6 +6,7 @@ import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { FileWithPreview } from "@/types/tools";
 import { organizePDF, PageOperation } from "@/lib/pdf/organize";
 import { useToast } from "@/contexts/ToastContext";
@@ -277,9 +278,14 @@ export default function OrganizeClient() {
                                 <Button variant="outline" onClick={handleStartOver}>
                                     Cancel
                                 </Button>
-                                <Button onClick={handleOrganize} disabled={isProcessing || pages.length === 0}>
-                                    {isProcessing ? "Processing..." : "Save PDF"}
-                                </Button>
+                                <PrimaryAction
+                                    onClick={handleOrganize}
+                                    loading={isProcessing}
+                                    disabled={pages.length === 0}
+                                    context={`${pages.length} page${pages.length === 1 ? "" : "s"} remaining`}
+                                >
+                                    Save PDF
+                                </PrimaryAction>
                             </div>
                         </div>
 

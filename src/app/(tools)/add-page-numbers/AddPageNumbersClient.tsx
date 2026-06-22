@@ -7,6 +7,7 @@ import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
 import {
@@ -341,9 +342,13 @@ export default function AddPageNumbersClient() {
                     {/* Action Button */}
                     {files.length > 0 && !isProcessing && (
                         <div className="flex justify-center">
-                            <Button onClick={handleAddNumbers} size="lg">
+                            <PrimaryAction
+                                onClick={handleAddNumbers}
+                                loading={isProcessing}
+                                context="1 file ready"
+                            >
                                 Add Page Numbers
-                            </Button>
+                            </PrimaryAction>
                         </div>
                     )}
                 </div>

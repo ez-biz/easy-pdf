@@ -9,6 +9,7 @@ import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { RedactionEditor } from "@/components/tools/RedactionEditor";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
 import { downloadBlob } from "@/lib/utils";
@@ -145,9 +146,13 @@ export default function RedactClient() {
                                     <Button variant="secondary" onClick={handleReset}>
                                         Clear
                                     </Button>
-                                    <Button size="lg" onClick={handleApply} disabled={boxes.length === 0}>
-                                        Apply {boxes.length > 0 ? `${boxes.length} ` : ""}Redaction{boxes.length === 1 ? "" : "s"}
-                                    </Button>
+                                    <PrimaryAction
+                                        onClick={handleApply}
+                                        disabled={boxes.length === 0}
+                                        context={`${boxes.length} box${boxes.length === 1 ? "" : "es"} drawn`}
+                                    >
+                                        {boxes.length > 0 ? `Apply ${boxes.length} Redaction${boxes.length === 1 ? "" : "s"}` : "Apply Redactions"}
+                                    </PrimaryAction>
                                 </div>
                             )}
                         </>
