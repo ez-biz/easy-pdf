@@ -5,6 +5,7 @@ import { motion, useSpring, useTransform } from "framer-motion";
 import { Minimize2, FileText, TrendingDown, Check, ArrowRight } from "lucide-react";
 import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
+import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
 import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -290,9 +291,12 @@ export default function CompressClient() {
                         </div>
                     </div>
 
-                    <PrimaryAction onClick={handleDownload} context="Done — ready to download">
-                        Download
-                    </PrimaryAction>
+                    <DownloadButton
+                        onClick={handleDownload}
+                        filename={`${file.name.replace(".pdf", "")}_compressed.pdf`}
+                        fileSize={result.compressedSize}
+                        isReady
+                    />
 
                     <div className="text-center">
                         <div className="flex justify-center gap-3">
