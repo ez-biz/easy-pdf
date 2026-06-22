@@ -649,11 +649,15 @@ git commit -m "feat(mobile): adopt PrimaryAction in Compress (reference migratio
 
 ## Task 9: Roll out PrimaryAction to the remaining tools
 
-Apply the **exact same recipe** from Task 8 to each tool below. The recipe per tool:
+Apply the recipe from Task 8 to each tool below. IMPORTANT REVISION (discovered in Task 8): **download/result phases are already handled centrally** — the shared `DownloadButton` now registers its own mobile action, so tools that use `<DownloadButton>` for their result phase need NO change there. Only the **forward/process action** (the plain `<Button>` that kicks off the work) becomes `<PrimaryAction>`.
+
+The recipe per tool:
 1. `import { PrimaryAction } from "@/components/tools/PrimaryAction";`
-2. Replace the single **primary** `<Button>` of each phase (the main forward action / the download action) with `<PrimaryAction onClick={<existing handler>} loading={<existing in-progress flag, if any>} context={<short status>}>Label</PrimaryAction>`.
-3. Leave secondary buttons (reset, cancel, adjust, "add more") as plain `<Button>`.
-4. Use a plain-text label (PrimaryAction children must be a string).
+2. Replace the single **forward/process** `<Button>` (e.g. "Merge PDFs", "Split", "Convert") with `<PrimaryAction onClick={<existing handler>} loading={<existing in-progress flag, if any>} context={<short status>}>Label</PrimaryAction>`.
+3. Do NOT touch `<DownloadButton>` usages — they already drive the bar in the result phase.
+4. If a tool's result/download CTA is a PLAIN `<Button onClick={handleDownload}>` (not `DownloadButton`), convert that one to `<PrimaryAction>` too.
+5. Leave secondary buttons (reset, cancel, adjust, "add more") as plain `<Button>`.
+6. Use a plain-text label (PrimaryAction children must be a string).
 
 Do them in two commits (high-traffic first, then the rest) so review stays manageable.
 
