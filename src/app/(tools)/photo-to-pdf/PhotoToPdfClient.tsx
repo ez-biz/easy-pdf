@@ -223,6 +223,7 @@ export default function PhotoToPdfClient() {
                         onFilesChange={handleFilesChange}
                         label="Drop your photos here"
                         description="JPG, PNG, WEBP, HEIC supported"
+                        allowCamera
                     />
 
                     {/* Photo Preview & Reorder */}

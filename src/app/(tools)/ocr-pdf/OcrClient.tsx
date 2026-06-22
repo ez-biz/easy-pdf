@@ -155,6 +155,7 @@ export default function OcrClient() {
                         files={files}
                         onFilesChange={handleFilesChange}
                         label="Drop your scanned PDF here"
+                        allowCamera
                     />
 
                     {file && (

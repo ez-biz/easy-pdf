@@ -146,6 +146,7 @@ export default function ImageToPDFClient() {
                         onFilesChange={handleFilesChange}
                         label="Drop your images here"
                         description="JPG, PNG, WEBP, GIF, BMP supported"
+                        allowCamera
                     />
 
                     {/* Image Preview & Reorder */}
