@@ -2,8 +2,10 @@
 
 import { motion } from "framer-motion";
 import { CheckCircle, LucideIcon, Download } from "lucide-react";
+
 import { formatFileSize } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 
 interface ConversionResultProps {
     sourceFormat: string;
@@ -151,13 +153,13 @@ export function ConversionResult({
                         transition={{ delay: 0.45 }}
                         className="flex items-center gap-3"
                     >
-                        <Button
+                        <PrimaryAction
                             onClick={onDownload}
-                            size="lg"
-                            leftIcon={<Download className="w-5 h-5" aria-hidden="true" />}
+                            icon={<Download className="w-5 h-5" aria-hidden="true" />}
+                            context="Done — ready to download"
                         >
-                            Download {targetFormat}
-                        </Button>
+                            {`Download ${targetFormat}`}
+                        </PrimaryAction>
                         <Button variant="secondary" onClick={onReset}>
                             Convert Another
                         </Button>
