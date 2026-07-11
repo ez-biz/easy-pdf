@@ -2,6 +2,8 @@ import type { FC } from "react";
 import type { LucideIcon } from "lucide-react";
 import type { MediaType } from "./mediaType";
 
+export type { MediaType } from "./mediaType";
+
 /** One available operation kind (e.g. "rotate"). Wraps an existing lib/pdf fn. */
 export interface PdfOperation<TOptions = unknown> {
     id: string;
