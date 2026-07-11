@@ -7,6 +7,7 @@ import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { PDFPageRenderer } from "@/components/tools/PDFPageRenderer";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { FileWithPreview } from "@/types/tools";
 import { addImagesToPDF, ImageOverlay } from "@/lib/pdf/addImage";
 import { useToast } from "@/contexts/ToastContext";
@@ -370,13 +371,15 @@ export default function SignClient() {
 
                             {/* Download Action */}
                             <div className="bg-white dark:bg-surface-800 rounded-xl shadow-sm border border-surface-200 dark:border-surface-700 p-4">
-                                <Button
-                                    className="w-full"
+                                <PrimaryAction
                                     onClick={handleDownload}
-                                    disabled={isProcessing || overlays.length === 0}
+                                    loading={isProcessing}
+                                    disabled={overlays.length === 0}
+                                    context={`${overlays.length} signature${overlays.length === 1 ? "" : "s"} placed`}
+                                    className="w-full"
                                 >
-                                    {isProcessing ? "Processing..." : "Download PDF"}
-                                </Button>
+                                    Download PDF
+                                </PrimaryAction>
                             </div>
                         </div>
                     </div>

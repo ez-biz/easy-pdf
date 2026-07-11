@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -9,6 +9,7 @@ import {
     Image as ImageIcon,
     X,
     AlertCircle,
+    Camera,
 } from "lucide-react";
 import NextImage from "next/image";
 import { cn, formatFileSize, generateId } from "@/lib/utils";
@@ -24,6 +25,8 @@ interface FileUploaderProps {
     files: FileWithPreview[];
     label?: string;
     description?: string;
+    mobileLabel?: string;
+    allowCamera?: boolean;
 }
 
 export function FileUploader({
@@ -35,8 +38,38 @@ export function FileUploader({
     files,
     label = "Drop your files here",
     description = "or click to browse",
+    mobileLabel = "Tap to add files",
+    allowCamera = false,
 }: FileUploaderProps) {
     const [error, setError] = useState<string | null>(null);
+
+    const addAcceptedFiles = useCallback(
+        (acceptedFiles: File[]) => {
+            setError(null);
+            if (files.length + acceptedFiles.length > maxFiles) {
+                setError(`Maximum ${maxFiles} files allowed`);
+                return;
+            }
+            const newFiles: FileWithPreview[] = acceptedFiles.map((file) => ({
+                file,
+                id: generateId(),
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+            }));
+            onFilesChange([...files, ...newFiles]);
+        },
+        [files, maxFiles, onFilesChange],
+    );
+
+    const cameraInputRef = useRef<HTMLInputElement>(null);
+
+    const onCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const list = e.target.files ? Array.from(e.target.files) : [];
+        if (list.length) addAcceptedFiles(list);
+        e.target.value = ""; // allow re-capturing the same file
+    };
 
     const onDrop = useCallback(
         (acceptedFiles: File[], rejectedFiles: { errors: readonly { code: string; message: string }[] }[]) => {
@@ -54,25 +87,9 @@ export function FileUploader({
                 return;
             }
 
-            if (files.length + acceptedFiles.length > maxFiles) {
-                setError(`Maximum ${maxFiles} files allowed`);
-                return;
-            }
-
-            const newFiles: FileWithPreview[] = acceptedFiles.map((file) => ({
-                file,
-                id: generateId(),
-                name: file.name,
-                size: file.size,
-                type: file.type,
-                preview: file.type.startsWith("image/")
-                    ? URL.createObjectURL(file)
-                    : undefined,
-            }));
-
-            onFilesChange([...files, ...newFiles]);
+            addAcceptedFiles(acceptedFiles);
         },
-        [files, maxFiles, maxSize, onFilesChange]
+        [addAcceptedFiles, maxSize]
     );
 
     const removeFile = (fileId: string) => {
@@ -134,9 +151,10 @@ export function FileUploader({
                     </div>
                     <div className="text-center">
                         <p className="text-lg font-semibold text-surface-900 dark:text-white mb-1">
-                            {isDragActive ? "Drop files here" : label}
+                            <span className="md:hidden">{mobileLabel}</span>
+                            <span className="hidden md:inline">{isDragActive ? "Drop files here" : label}</span>
                         </p>
-                        <p className="text-sm text-surface-500 dark:text-surface-400">
+                        <p className="text-sm text-surface-500 dark:text-surface-400 hidden md:block">
                             {description}
                         </p>
                     </div>
@@ -152,6 +170,27 @@ export function FileUploader({
                     </p>
                 </div>
             </div>
+
+            {allowCamera && (
+                <div className="md:hidden mt-3">
+                    <input
+                        ref={cameraInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={onCameraCapture}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => cameraInputRef.current?.click()}
+                        className="w-full min-h-[48px] inline-flex items-center justify-center gap-2 rounded-xl border border-surface-300 dark:border-surface-600 text-surface-700 dark:text-surface-200 font-medium"
+                    >
+                        <Camera className="w-5 h-5" aria-hidden="true" />
+                        Take photo
+                    </button>
+                </div>
+            )}
 
             {/* Error Message */}
             <AnimatePresence>

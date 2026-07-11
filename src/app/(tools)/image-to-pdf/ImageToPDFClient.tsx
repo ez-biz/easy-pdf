@@ -7,6 +7,7 @@ import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
 import { imagesToPDF, PageSize, Orientation, Margin } from "@/lib/pdf/fromImage";
@@ -145,6 +146,7 @@ export default function ImageToPDFClient() {
                         onFilesChange={handleFilesChange}
                         label="Drop your images here"
                         description="JPG, PNG, WEBP, GIF, BMP supported"
+                        allowCamera
                     />
 
                     {/* Image Preview & Reorder */}
@@ -390,9 +392,13 @@ export default function ImageToPDFClient() {
                             <Button variant="secondary" onClick={handleReset}>
                                 Clear All
                             </Button>
-                            <Button onClick={handleConvert} size="lg">
+                            <PrimaryAction
+                                onClick={handleConvert}
+                                loading={isProcessing}
+                                context={`${files.length} image${files.length === 1 ? "" : "s"} ready`}
+                            >
                                 Create PDF
-                            </Button>
+                            </PrimaryAction>
                         </div>
                     )}
                 </div>

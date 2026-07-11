@@ -6,6 +6,7 @@ import { cn, formatFileSize } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { usePathname } from "next/navigation";
 import { trackToolUsage } from "@/lib/analytics";
+import { useRegisterMobileAction } from "@/components/layout/MobileActionContext";
 
 interface DownloadButtonProps {
     onClick: () => void;
@@ -31,6 +32,16 @@ export function DownloadButton({
         trackToolUsage(toolName, "download");
         onClick();
     };
+
+    useRegisterMobileAction(
+        isReady
+            ? {
+                  label: "Download File",
+                  onClick: handleClick,
+                  context: fileSize ? `${filename} · ${formatFileSize(fileSize)}` : filename,
+              }
+            : null,
+    );
 
     return (
         <AnimatePresence mode="wait">
@@ -62,7 +73,7 @@ export function DownloadButton({
                             {fileSize && ` · ${formatFileSize(fileSize)}`}
                         </p>
                     </div>
-                    <Button onClick={handleClick} size="lg" leftIcon={<Download className="w-5 h-5" />}>
+                    <Button onClick={handleClick} size="lg" leftIcon={<Download className="w-5 h-5" />} className="max-md:hidden">
                         Download File
                     </Button>
                 </motion.div>

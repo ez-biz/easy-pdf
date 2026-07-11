@@ -7,6 +7,7 @@ import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { FileWithPreview } from "@/types/tools";
 import { readMetadata, updateMetadata, PDFMetadata } from "@/lib/pdf/metadata";
 import { downloadBlob, createPdfBlob } from "@/lib/utils";
@@ -268,14 +269,14 @@ export default function EditMetadataClient() {
 
                         {/* Action Buttons */}
                         <div className="flex gap-4">
-                            <Button
+                            <PrimaryAction
                                 onClick={handleUpdate}
-                                disabled={isProcessing}
-                                size="lg"
+                                loading={isProcessing}
+                                context="1 file ready"
                                 className="flex-1"
                             >
-                                {isProcessing ? "Updating..." : "Update Metadata"}
-                            </Button>
+                                Update Metadata
+                            </PrimaryAction>
                             <Button onClick={handleReset} variant="outline" size="lg">
                                 Reset
                             </Button>

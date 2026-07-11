@@ -7,6 +7,7 @@ import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
 import { CompressionLevel } from "@/lib/pdf/compress";
@@ -206,9 +207,13 @@ export default function CompressClient() {
                             <Button variant="secondary" onClick={handleReset}>
                                 Clear
                             </Button>
-                            <Button onClick={handleCompress} size="lg">
+                            <PrimaryAction
+                                onClick={handleCompress}
+                                loading={isProcessing}
+                                context={`${files.length} file${files.length === 1 ? "" : "s"} ready`}
+                            >
                                 Compress PDF
-                            </Button>
+                            </PrimaryAction>
                         </div>
                     )}
                 </div>

@@ -8,6 +8,7 @@ import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { PDFPageRenderer } from "@/components/tools/PDFPageRenderer";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { FileWithPreview } from "@/types/tools";
 import { addTextToPDF, generatePagePreviews, type TextBox } from "@/lib/pdf/addText";
 import { downloadBlob, createPdfBlob } from "@/lib/utils";
@@ -486,14 +487,15 @@ export default function AddTextClient() {
                                 </p>
                             </div>
 
-                            <Button
+                            <PrimaryAction
                                 onClick={handleApply}
-                                disabled={isProcessing || textBoxes.length === 0}
-                                size="lg"
+                                loading={isProcessing}
+                                disabled={textBoxes.length === 0}
+                                context={`${textBoxes.length} text box${textBoxes.length === 1 ? "" : "es"}`}
                                 className="w-full"
                             >
-                                {isProcessing ? "Processing..." : "Download Updated PDF"}
-                            </Button>
+                                Download Updated PDF
+                            </PrimaryAction>
                         </div>
                     </div>
                 )}

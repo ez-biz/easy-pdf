@@ -7,6 +7,7 @@ import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
 import { pdfToImages, ImageFormat, DPI } from "@/lib/pdf/toImage";
@@ -208,9 +209,13 @@ export default function PDFToImageClient() {
                             <Button variant="secondary" onClick={handleReset}>
                                 Clear
                             </Button>
-                            <Button onClick={handleConvert} size="lg">
-                                Convert to {format.toUpperCase()}
-                            </Button>
+                            <PrimaryAction
+                                onClick={handleConvert}
+                                loading={isProcessing}
+                                context="1 file ready"
+                            >
+                                {`Convert to ${format.toUpperCase()}`}
+                            </PrimaryAction>
                         </div>
                     )}
                 </div>

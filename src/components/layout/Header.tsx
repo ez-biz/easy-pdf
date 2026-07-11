@@ -167,7 +167,7 @@ export function Header() {
                         <button
                             type="button"
                             onClick={toggleDarkMode}
-                            className="p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
                             aria-label="Toggle dark mode"
                         >
                             {isDark ? (
@@ -181,7 +181,7 @@ export function Header() {
                         <button
                             type="button"
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="lg:hidden p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                            className="lg:hidden min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
                             aria-label="Toggle menu"
                         >
                             {mobileMenuOpen ? (

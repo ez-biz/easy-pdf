@@ -7,6 +7,7 @@ import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
 import { removePages, getPageCount } from "@/lib/pdf/organize";
@@ -249,9 +250,13 @@ export default function RemovePagesClient() {
                     {/* Action Button */}
                     {pages.length > 0 && selectedCount > 0 && !isProcessing && (
                         <div className="flex justify-center">
-                            <Button onClick={handleRemovePages} size="lg" variant="danger">
-                                Remove {selectedCount} Page{selectedCount > 1 ? "s" : ""}
-                            </Button>
+                            <PrimaryAction
+                                onClick={handleRemovePages}
+                                loading={isProcessing}
+                                context={`${selectedCount} page${selectedCount === 1 ? "" : "s"} selected`}
+                            >
+                                {`Remove ${selectedCount} Page${selectedCount > 1 ? "s" : ""}`}
+                            </PrimaryAction>
                         </div>
                     )}
                 </div>

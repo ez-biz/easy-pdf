@@ -7,6 +7,7 @@ import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
 import { downloadBlob, formatFileSize, createPdfBlob } from "@/lib/utils";
@@ -176,9 +177,13 @@ export default function MergeClient() {
                             <Button variant="secondary" onClick={handleReset}>
                                 Clear All
                             </Button>
-                            <Button onClick={handleMerge} size="lg">
-                                Merge {files.length} PDFs
-                            </Button>
+                            <PrimaryAction
+                                onClick={handleMerge}
+                                loading={isProcessing}
+                                context={`${files.length} files ready`}
+                            >
+                                {`Merge ${files.length} PDFs`}
+                            </PrimaryAction>
                         </div>
                     )}
                 </div>

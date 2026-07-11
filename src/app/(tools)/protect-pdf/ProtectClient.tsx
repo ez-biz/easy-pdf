@@ -7,6 +7,7 @@ import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
 import { protectPDF } from "@/lib/pdf/security";
@@ -224,13 +225,14 @@ export default function ProtectClient() {
                     {/* Action Button */}
                     {files.length > 0 && password && confirmPassword && !isProcessing && (
                         <div className="flex justify-center">
-                            <Button
+                            <PrimaryAction
                                 onClick={handleProtect}
-                                size="lg"
+                                loading={isProcessing}
                                 disabled={password !== confirmPassword || password.length < 4}
+                                context="1 file ready"
                             >
                                 Protect PDF
-                            </Button>
+                            </PrimaryAction>
                         </div>
                     )}
                 </div>

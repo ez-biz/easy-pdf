@@ -8,6 +8,7 @@ import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
 import { downloadBlob } from "@/lib/utils";
@@ -154,6 +155,7 @@ export default function OcrClient() {
                         files={files}
                         onFilesChange={handleFilesChange}
                         label="Drop your scanned PDF here"
+                        allowCamera
                     />
 
                     {file && (
@@ -232,9 +234,13 @@ export default function OcrClient() {
                             <Button variant="secondary" onClick={handleReset}>
                                 Clear
                             </Button>
-                            <Button onClick={handleOcr} size="lg">
+                            <PrimaryAction
+                                onClick={handleOcr}
+                                loading={isProcessing}
+                                context="1 file ready"
+                            >
                                 Extract Text
-                            </Button>
+                            </PrimaryAction>
                         </div>
                     )}
                 </div>

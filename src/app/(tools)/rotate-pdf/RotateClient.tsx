@@ -7,6 +7,7 @@ import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
 import { RotationAngle } from "@/lib/pdf/rotate";
@@ -266,9 +267,13 @@ export default function RotateClient() {
                             <Button variant="secondary" onClick={handleReset}>
                                 Clear
                             </Button>
-                            <Button onClick={handleRotate} size="lg" disabled={rotations.size === 0}>
-                                Apply Rotation ({rotations.size} pages)
-                            </Button>
+                            <PrimaryAction
+                                onClick={handleRotate}
+                                disabled={rotations.size === 0}
+                                context={`${rotations.size} page${rotations.size === 1 ? "" : "s"} selected`}
+                            >
+                                {`Apply Rotation (${rotations.size} pages)`}
+                            </PrimaryAction>
                         </div>
                     )}
                 </div>

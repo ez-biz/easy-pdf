@@ -7,6 +7,7 @@ import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { Button } from "@/components/ui/Button";
+import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FileWithPreview } from "@/types/tools";
 import { getPDFPageCount, SplitMode } from "@/lib/pdf/split";
@@ -231,9 +232,13 @@ export default function SplitClient() {
                             <Button variant="secondary" onClick={handleReset}>
                                 Clear
                             </Button>
-                            <Button onClick={handleSplit} size="lg">
+                            <PrimaryAction
+                                onClick={handleSplit}
+                                loading={isProcessing}
+                                context="1 file ready"
+                            >
                                 Split PDF
-                            </Button>
+                            </PrimaryAction>
                         </div>
                     )}
                 </div>
