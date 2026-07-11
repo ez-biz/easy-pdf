@@ -1,7 +1,30 @@
 # EasyPDF Product Roadmap 2026
 
-> **Last Updated:** January 19, 2026  
-> **Status:** 12 Core Tools Complete ✅
+> **Last Updated:** July 11, 2026  
+> **Status:** 26 Tools Live ✅ (2 coming soon)
+>
+> ℹ️ **Note on this doc:** The "what's shipped" sections below are kept in sync
+> with the tool registry (`src/lib/constants.ts`) and git history. The
+> forward-looking strategy sections (monetization, MAU/NPS targets, revenue
+> projections) are aspirational and have **not** been re-validated since the
+> January baseline — treat them as directional, not current.
+
+## 🆕 Recently Shipped (H1 2026)
+
+Since the January baseline, the tool count more than doubled (12 → 26). Notably,
+several features the old roadmap slotted behind "requires backend infrastructure"
+(Phase 4) shipped **client-side**, and Phase 5's OCR landed early:
+
+- **Document conversion suite** — PDF ⇄ Word, PDF ⇄ Excel, PDF → PowerPoint,
+  Word/Excel/Photo → PDF (all client-side; no backend required)
+- **OCR PDF** — text recognition (Phase 5.1, shipped early)
+- **Redact PDF** — manual redaction with verified text removal (security)
+- **Sign PDF** — signature placement
+- **Batch Process** — chain operations across many files (PR #17), with a
+  pipeline engine; follow-on pipeline work ("Sub-project 2") is scoped
+- **Add Text / Add Image / Edit Metadata / Organize PDF** — editing suite (Phase 3.1)
+- **Mobile usability** — sticky action bar, touch-aware uploader with camera
+  capture, 44px hit targets across all tools (PR #18)
 
 ## 📊 User Engagement Research
 
@@ -12,10 +35,10 @@ Based on industry analysis of top PDF tools (Adobe, Smallpdf, PDFCandy, iLovePDF
 2. **PDF to Image** - 18% of users (✅ Implemented)
 3. **Compress PDF** - 15% of users (✅ Implemented)
 4. **Split PDF** - 12% of users (✅ Implemented)
-5. **PDF Edit** - 9% of users (🔄 Partially - watermark, pages)
-6. **Convert to Word** - 6% of users (❌ Requires backend)
-7. **Sign PDF** - 4% of users (❌ Not implemented)
-8. **OCR** - 2% of users (❌ Not implemented)
+5. **PDF Edit** - 9% of users (✅ Implemented - text, image, watermark, pages, metadata)
+6. **Convert to Word** - 6% of users (✅ Implemented - client-side, no backend)
+7. **Sign PDF** - 4% of users (✅ Implemented)
+8. **OCR** - 2% of users (✅ Implemented - client-side)
 9. **Form Fill** - 1.5% of users (❌ Not implemented)
 10. **Other Tools** - 0.5% combined
 
@@ -26,32 +49,34 @@ Based on industry analysis of top PDF tools (Adobe, Smallpdf, PDFCandy, iLovePDF
 - **Recurring Users:** 34% return within 7 days
 - **Feature Discovery:** 22% use more than one tool per visit
 
-## 🎯 Current Status (Version 1.0)
+## 🎯 Current Status
 
-### ✅ Completed Features
-| Feature | Status | User Demand | Notes |
-|---------|--------|-------------|-------|
-| Merge PDFs | ✅ Live | Very High (32%) | Drag & drop reorder |
-| PDF to Image | ✅ Live | High (18%) | Multiple formats |
-| Compress PDF | ✅ Live | High (15%) | Client-side limits |
-| Split PDF | ✅ Live | Medium (12%) | Multiple modes |
-| Rotate Pages | ✅ Live | Medium (8%) | Bulk operations |
-| Image to PDF | ✅ Live | Medium (7%) | Multi-image support |
-| Add Watermark | ✅ Live | Low (3%) | Text & image |
-| Add Page Numbers | ✅ Live | Low (2%) | Customizable |
-| Remove Pages | ✅ Live | Medium (5%) | Visual selection |
-| Extract Pages | ✅ Live | Medium (4%) | Visual selection |
-| Protect PDF | ✅ Live | Low (2%) | Client-side only |
-| Unlock PDF | ✅ Live | Low (1%) | Basic support |
+**26 tools live** across 5 categories (source of truth: `src/lib/constants.ts`).
+All processing is client-side.
+
+### ✅ Live Tools by Category
+
+- **Organize (5):** Merge PDF · Split PDF · Rotate PDF · Organize PDF · Batch Process
+- **Convert (9):** PDF to Image · Image to PDF · Word to PDF · PDF to Word · Excel to PDF · PDF to Excel · PDF to PowerPoint · Photo to PDF · OCR PDF
+- **Edit (8):** Add Watermark · Add Page Numbers · Remove Pages · Extract Pages · Edit Metadata · Add Text to PDF · Add Image to PDF · Sign PDF
+- **Security (3):** Protect PDF · Unlock PDF · Redact PDF
+- **Optimize (1):** Compress PDF
+
+### 🔜 Coming Soon (registry `comingSoon: true`)
+
+- Edit PDF · Repair PDF
 
 ### 🎨 Infrastructure Complete
 - ✅ Zustand State Management
 - ✅ Toast Notification System
 - ✅ Dark Mode with Persistence
 - ✅ Next.js Image Optimization
-- ✅ Responsive Design
-- ✅ Legal Pages (Privacy, Terms, Contact)
+- ✅ Responsive + Mobile-Optimized Design (sticky action bar, touch targets, camera capture)
+- ✅ PWA Support (`@ducanh2912/next-pwa`)
+- ✅ Legal Pages (Privacy, Terms, Contact, Disclaimer)
+- ✅ Settings Page
 - ✅ Comprehensive Documentation (Wiki)
+- ✅ Automated FTPS Deploy to Hostinger (GitHub Actions)
 
 ---
 
@@ -61,7 +86,7 @@ Based on industry analysis of top PDF tools (Adobe, Smallpdf, PDFCandy, iLovePDF
 **Goal:** Improve retention from 34% to 50%
 
 #### 2.1 State Management Integration (2 weeks)
-- [ ] **Settings Page** - UI for managing preferences
+- [x] **Settings Page** ✅ Shipped — UI for managing preferences
   - Priority: High | Effort: Low | Impact: High
   - User Demand: 40% want customization options
 - [ ] **Recent Activity Dashboard** - Show last operations on homepage
@@ -72,10 +97,11 @@ Based on industry analysis of top PDF tools (Adobe, Smallpdf, PDFCandy, iLovePDF
   - User Demand: 15% interested in insights
 
 #### 2.2 UX Improvements (3 weeks)
-- [ ] **Batch Processing** - Process multiple files at once
+- [x] **Batch Processing** ✅ Shipped (PR #17) — chain operations across many files, with pipeline engine
   - Priority: Very High | Effort: Medium | Impact: Very High
   - User Demand: 52% request this feature
   - Expected: +25% conversion rate
+  - Follow-on: pipeline "Sub-project 2" scoped
 - [ ] **Keyboard Shortcuts** - Power user features
   - Priority: Medium | Effort: Low | Impact: Medium
   - User Demand: 18% power users
@@ -94,13 +120,13 @@ Based on industry analysis of top PDF tools (Adobe, Smallpdf, PDFCandy, iLovePDF
 **Goal:** Increase feature usage from 1.2 to 2.5 tools per visit
 
 #### 3.1 PDF Editing Suite (4 weeks)
-- [ ] **PDF Metadata Editor** - Edit title, author, keywords
+- [x] **PDF Metadata Editor** ✅ Shipped — Edit title, author, keywords
   - Priority: Medium | Effort: Low | Impact: Medium
   - User Demand: 12% need this
-- [ ] **Add Text to PDF** - Insert text boxes
+- [x] **Add Text to PDF** ✅ Shipped — Insert text boxes
   - Priority: High | Effort: High | Impact: High
   - User Demand: 31% request this
-- [ ] **Add Images to PDF** - Insert images anywhere
+- [x] **Add Images to PDF** ✅ Shipped — Insert images anywhere
   - Priority: High | Effort: Medium | Impact: High
   - User Demand: 27% request this
 - [ ] **PDF Highlighter** - Highlight text
@@ -119,10 +145,12 @@ Based on industry analysis of top PDF tools (Adobe, Smallpdf, PDFCandy, iLovePDF
 
 ---
 
-### Phase 4: Conversion Tools (Q3 2026)
+### Phase 4: Conversion Tools (Q3 2026) — ✅ Largely Shipped
 **Goal:** Capture 6% user demand for document conversion
 
-⚠️ **Note:** Requires backend infrastructure
+✅ **Update:** The conversion suite shipped **client-side** — the original
+"requires backend infrastructure" assumption did not hold. Phase 4.1
+(serverless functions, S3, etc.) was **not** needed and is deprioritized.
 
 #### 4.1 Server-Side API Setup (2 weeks)
 - [ ] **Serverless Functions** - Vercel/AWS Lambda
@@ -131,17 +159,17 @@ Based on industry analysis of top PDF tools (Adobe, Smallpdf, PDFCandy, iLovePDF
 - [ ] **Usage Tracking** - Monitor costs
 
 #### 4.2 Document Conversion (6 weeks)
-- [ ] **PDF to Word** (.docx output)
+- [x] **PDF to Word** (.docx output) ✅ Shipped
   - Priority: Very High | Effort: High | Impact: Very High
   - User Demand: 42% top requested feature
   - **Commercial Value:** Top monetization opportunity
-- [ ] **PDF to Excel** (.xlsx output)
+- [x] **PDF to Excel** (.xlsx output) ✅ Shipped
   - Priority: High | Effort: High | Impact: High
   - User Demand: 18% (business users)
-- [ ] **PDF to PowerPoint** (.pptx output)
+- [x] **PDF to PowerPoint** (.pptx output) ✅ Shipped
   - Priority: Medium | Effort: High | Impact: Medium
   - User Demand: 8% (educators)
-- [ ] **Word/Excel/PPT to PDF** (reverse)
+- [x] **Word/Excel to PDF** (reverse) ✅ Shipped (Word to PDF, Excel to PDF)
   - Priority: High | Effort: Medium | Impact: High
   - User Demand: 24% need this
 
@@ -155,7 +183,7 @@ Based on industry analysis of top PDF tools (Adobe, Smallpdf, PDFCandy, iLovePDF
 ⚠️ **Note:** Requires AI/ML infrastructure & API costs
 
 #### 5.1 OCR & Text Recognition (8 weeks)
-- [ ] **OCR Engine Integration** - Tesseract.js or Cloud Vision API
+- [x] **OCR Engine Integration** ✅ Shipped (client-side) — OCR PDF tool
   - Priority: High | Effort: Very High | Impact: Very High
   - User Demand: 22% need text extraction
   - **Use Case:** Scanned documents, images with text
@@ -173,9 +201,11 @@ Based on industry analysis of top PDF tools (Adobe, Smallpdf, PDFCandy, iLovePDF
 - [ ] **Smart Compression** - AI-based optimization
   - Priority: Low | Effort: High | Impact: Low
   - User Demand: 8% care about quality
-- [ ] **Auto-Redaction** - Detect & redact sensitive info
+- [ ] **Auto-Redaction** - Detect & redact sensitive info (AI-based)
   - Priority: Medium | Effort: Very High | Impact: Medium
   - User Demand: 14% (lawyers, HR)
+  - Note: **manual** Redact PDF already shipped (verified text removal); this
+    item is the AI auto-detection layer on top of it
 
 **Estimated Impact:** +40% enterprise users, premium pricing potential
 
@@ -299,18 +329,17 @@ Based on industry analysis of top PDF tools (Adobe, Smallpdf, PDFCandy, iLovePDF
 
 ---
 
-## 🚀 Quick Wins (Next 30 Days)
+## 🚀 Quick Wins (from Jan planning — status as of Jul 2026)
 
 Priority fixes based on user testing:
 
-1. ✅ **Settings Page** - Let users customize defaults
-2. ✅ **Recent Activity** - Show on homepage
-3. ✅ **Batch Upload** - Process multiple files
-4. ✅ **PWA Support** - Enable installation
-5. ✅ **Keyboard Shortcuts** - Add power user features
+1. ✅ **Settings Page** - Let users customize defaults *(shipped)*
+2. ⬜ **Recent Activity** - Show on homepage *(not shipped)*
+3. ✅ **Batch Upload** - Process multiple files *(shipped, PR #17)*
+4. ✅ **PWA Support** - Enable installation *(shipped)*
+5. ⬜ **Keyboard Shortcuts** - Add power user features *(not shipped)*
 
-**Estimated Development:** 40 hours  
-**Expected Impact:** +15% engagement, +10% retention
+**Remaining quick wins:** Recent Activity, Keyboard Shortcuts
 
 ---
 
@@ -339,6 +368,6 @@ Use this matrix to prioritize features:
 
 ---
 
-**Next Review:** April 1, 2026  
+**Next Review:** October 1, 2026  
 **Owner:** Product Team  
 **Feedback:** [GitHub Discussions](https://github.com/ez-biz/easy-pdf/discussions)
