@@ -8,6 +8,7 @@ import { RotateForm } from "./forms/RotateForm";
 
 export const rotateOp: PdfOperation<RotateOptions> = {
     id: "rotate", label: "Rotate", icon: RotateCw,
+    inputType: "pdf", outputType: "pdf",
     defaultOptions: { angle: 90, scope: "all" },
     OptionsForm: RotateForm,
     async run(input, options) {

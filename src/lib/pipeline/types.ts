@@ -1,11 +1,20 @@
 import type { FC } from "react";
 import type { LucideIcon } from "lucide-react";
+import type { MediaType } from "./mediaType";
+
+export type { MediaType } from "./mediaType";
 
 /** One available operation kind (e.g. "rotate"). Wraps an existing lib/pdf fn. */
 export interface PdfOperation<TOptions = unknown> {
     id: string;
     label: string;
     icon: LucideIcon;
+    /** Media type this step consumes. The chain starts at "pdf" (uploader). */
+    inputType: MediaType;
+    /** Media type this step produces. */
+    outputType: MediaType;
+    /** True → this is a final step; nothing may run after it. */
+    terminal?: boolean;
     defaultOptions: TOptions;
     /** Inline-accordion config UI for a single step. */
     OptionsForm: FC<{ value: TOptions; onChange: (next: TOptions) => void }>;

@@ -6,6 +6,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove, s
 import { CSS } from "@dnd-kit/utilities";
 import { OPERATIONS } from "@/lib/pipeline/operations";
 import type { PipelineStep } from "@/lib/pipeline/types";
+import { MEDIA_META } from "@/lib/pipeline/mediaType";
 
 function StepCard({ step, index, onChange, onRemove }: {
     step: PipelineStep; index: number;
@@ -22,6 +23,11 @@ function StepCard({ step, index, onChange, onRemove }: {
                 <button type="button" {...attributes} {...listeners} className="cursor-grab touch-none select-none text-gray-400"><GripVertical className="w-4 h-4" /></button>
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-500 text-xs text-white">{index + 1}</span>
                 <span className="flex-1 text-sm font-medium">{op.label}</span>
+                {op.terminal && (
+                    <span className="rounded bg-primary-100 dark:bg-primary-900/40 px-1.5 py-0.5 text-xs text-primary-700 dark:text-primary-300">
+                        → .{MEDIA_META[op.outputType].ext}
+                    </span>
+                )}
                 <button type="button" onClick={() => setExpanded((e) => !e)} className="text-gray-400">
                     {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
@@ -29,9 +35,11 @@ function StepCard({ step, index, onChange, onRemove }: {
             </div>
             {expanded && (
                 <div className="border-t border-gray-100 dark:border-gray-700 p-3">
-                    {op.id === "compress"
-                        ? <p className="text-sm text-gray-500">Optimizes structure and strips unused objects. No options.</p>
-                        : <Form value={step.options} onChange={(options) => onChange({ ...step, options })} />}
+                    {op.terminal
+                        ? <p className="text-sm text-gray-500">Converts each PDF to .{MEDIA_META[op.outputType].ext} — no options. Must be the final step.</p>
+                        : op.id === "compress"
+                            ? <p className="text-sm text-gray-500">Optimizes structure and strips unused objects. No options.</p>
+                            : <Form value={step.options} onChange={(options) => onChange({ ...step, options })} />}
                 </div>
             )}
         </div>

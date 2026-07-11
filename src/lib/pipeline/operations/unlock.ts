@@ -7,6 +7,7 @@ import { PasswordForm } from "./forms/PasswordForm";
 
 export const unlockOp: PdfOperation<PasswordOptions> = {
     id: "unlock", label: "Unlock", icon: Unlock,
+    inputType: "pdf", outputType: "pdf",
     defaultOptions: { password: "" },
     OptionsForm: PasswordForm,
     async run(input, options) {

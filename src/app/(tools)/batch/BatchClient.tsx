@@ -8,7 +8,8 @@ import { RunProgress, type FileProgress } from "@/components/tools/batch/RunProg
 import { ResultsReport } from "@/components/tools/batch/ResultsReport";
 import { OPERATIONS } from "@/lib/pipeline/operations";
 import { runPipeline } from "@/lib/pipeline/runPipeline";
-import type { FileStatus, PipelineInput, PipelineStep } from "@/lib/pipeline/types";
+import { validateChain } from "@/lib/pipeline/validateChain";
+import type { FileStatus, MediaType, PipelineInput, PipelineStep } from "@/lib/pipeline/types";
 import type { FileWithPreview } from "@/types/tools";
 import { generateId } from "@/lib/utils";
 import { PrimaryAction } from "@/components/tools/PrimaryAction";
@@ -24,6 +25,7 @@ export default function BatchClient() {
     const [progress, setProgress] = useState<FileProgress[]>([]);
     const [done, setDone] = useState(0);
     const [results, setResults] = useState<FileStatus[]>([]);
+    const [outputType, setOutputType] = useState<MediaType>("pdf");
     const [error, setError] = useState<string | null>(null);
     const [cancelled, setCancelled] = useState(false);
     const abortRef = useRef<AbortController | null>(null);
@@ -52,6 +54,8 @@ export default function BatchClient() {
 
             setProgress(inputs.map((i) => ({ name: i.name, state: "queued" as const })));
             setDone(0);
+            const lastOp = steps.length ? OPERATIONS[steps[steps.length - 1].opId] : null;
+            setOutputType(lastOp?.outputType ?? "pdf");
             setPhase("running");
             const controller = new AbortController();
             abortRef.current = controller;
@@ -84,15 +88,9 @@ export default function BatchClient() {
         setCancelled(false);
     }
 
-    const protectIdx = steps.findIndex((s) => s.opId === "protect");
-    const unlockIdx = steps.findIndex((s) => s.opId === "unlock");
-    // Blocking: a Protect step that isn't last would be silently undone by later
-    // re-saving operations, producing an UNENCRYPTED output. Disallow running.
-    const protectNotLast = protectIdx !== -1 && protectIdx !== steps.length - 1;
-    const softWarnings: string[] = [];
-    if (unlockIdx > 0) softWarnings.push("Unlock usually works best as the first step.");
-
-    const canRun = files.length > 0 && steps.length > 0 && !protectNotLast;
+    const { errors, warnings } = validateChain(steps, OPERATIONS);
+    const hasTerminal = steps.some((s) => OPERATIONS[s.opId]?.terminal);
+    const canRun = files.length > 0 && steps.length > 0 && errors.length === 0;
 
     return (
         <MobileActionProvider>
@@ -107,16 +105,15 @@ export default function BatchClient() {
                     <FileUploader accept={{ "application/pdf": [".pdf"] }} multiple files={files} onFilesChange={setFiles}
                         label="Drop your PDFs here" />
                     {steps.length > 0 && <StepList steps={steps} onChange={setSteps} />}
-                    <OperationPicker onAdd={addStep} />
-                    {protectNotLast && (
-                        <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">
-                            <AlertTriangle className="w-4 h-4 inline mr-1" />
-                            Move &ldquo;Protect&rdquo; to the last step. Any operation after it removes the password protection, leaving the output unencrypted.
+                    <OperationPicker onAdd={addStep} disabled={hasTerminal} />
+                    {errors.map((e) => (
+                        <div key={e} className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">
+                            <AlertTriangle className="w-4 h-4 inline mr-1" />{e}
                         </div>
-                    )}
-                    {softWarnings.length > 0 && (
+                    ))}
+                    {warnings.length > 0 && (
                         <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-200">
-                            {softWarnings.map((w) => <p key={w}><AlertTriangle className="w-4 h-4 inline mr-1" />{w}</p>)}
+                            {warnings.map((w) => <p key={w}><AlertTriangle className="w-4 h-4 inline mr-1" />{w}</p>)}
                         </div>
                     )}
                     {error && <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">{error}</div>}
@@ -139,7 +136,7 @@ export default function BatchClient() {
             {phase === "results" && (
                 <>
                     {cancelled && <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-200">Run cancelled — only the files completed before cancelling are included.</div>}
-                    <ResultsReport results={results} onReset={reset} />
+                    <ResultsReport results={results} outputType={outputType} onReset={reset} />
                 </>
             )}
         </div>
