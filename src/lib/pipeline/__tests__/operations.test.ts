@@ -18,9 +18,10 @@ const isValidPdf = async (bytes: Uint8Array) => {
 };
 
 describe("operations registry", () => {
-    it("exposes the 7 v1 operations in order", () => {
+    it("exposes the 10 operations in order", () => {
         expect(OPERATION_LIST.map((o) => o.id)).toEqual([
             "compress", "rotate", "watermark", "page-numbers", "metadata", "protect", "unlock",
+            "pdf-to-word", "pdf-to-excel", "pdf-to-pptx",
         ]);
     });
 
@@ -60,5 +61,19 @@ describe("operations registry", () => {
             text: "CONFIDENTIAL", opacity: 0.3, position: "diagonal",
         });
         expect(await isValidPdf(out)).toBe(2);
+    });
+});
+
+describe("terminal conversion operations", () => {
+    it.each([
+        ["pdf-to-word", "docx"],
+        ["pdf-to-excel", "xlsx"],
+        ["pdf-to-pptx", "pptx"],
+    ])("%s is a terminal pdf→%s op", (id, outputType) => {
+        const op = OPERATIONS[id];
+        expect(op).toBeDefined();
+        expect(op.inputType).toBe("pdf");
+        expect(op.outputType).toBe(outputType);
+        expect(op.terminal).toBe(true);
     });
 });
