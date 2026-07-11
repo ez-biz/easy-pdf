@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import JSZip from "jszip";
-import { buildZip } from "../zipResults";
+import { buildZip, withExtension } from "../zipResults";
 import type { FileStatus } from "../types";
 
 const ok = (name: string): FileStatus => ({
@@ -32,5 +32,28 @@ describe("buildZip", () => {
         const blob = await buildZip([ok("a.pdf")]).generateAsync({ type: "uint8array" });
         const reloaded = await JSZip.loadAsync(blob);
         expect(Object.keys(reloaded.files)).toEqual(["a.pdf"]);
+    });
+});
+
+describe("withExtension", () => {
+    it("swaps the extension", () => {
+        expect(withExtension("report.pdf", "docx")).toBe("report.docx");
+    });
+    it("appends when there is no extension", () => {
+        expect(withExtension("report", "docx")).toBe("report.docx");
+    });
+    it("only replaces the final extension", () => {
+        expect(withExtension("my.report.pdf", "docx")).toBe("my.report.docx");
+    });
+});
+
+describe("buildZip with outputExt", () => {
+    it("renames entries to the output extension", () => {
+        const zip = buildZip([ok("report.pdf")], "docx");
+        expect(Object.keys(zip.files)).toEqual(["report.docx"]);
+    });
+    it("de-duplicates after the extension swap", () => {
+        const zip = buildZip([ok("report.pdf"), ok("report.pdf")], "docx");
+        expect(Object.keys(zip.files).sort()).toEqual(["report (1).docx", "report.docx"]);
     });
 });
