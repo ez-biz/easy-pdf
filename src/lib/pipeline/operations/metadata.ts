@@ -7,6 +7,7 @@ import { MetadataForm } from "./forms/MetadataForm";
 
 export const metadataOp: PdfOperation<MetadataOptions> = {
     id: "metadata", label: "Edit metadata", icon: Edit3,
+    inputType: "pdf", outputType: "pdf",
     defaultOptions: { title: "", author: "", subject: "", keywords: "" },
     OptionsForm: MetadataForm,
     async run(input, options) {

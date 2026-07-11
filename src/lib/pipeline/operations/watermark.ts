@@ -7,6 +7,7 @@ import { WatermarkForm } from "./forms/WatermarkForm";
 
 export const watermarkOp: PdfOperation<WatermarkOptions> = {
     id: "watermark", label: "Watermark", icon: Droplets,
+    inputType: "pdf", outputType: "pdf",
     defaultOptions: { text: "CONFIDENTIAL", opacity: 0.3, position: "diagonal" },
     OptionsForm: WatermarkForm,
     async run(input, options) {

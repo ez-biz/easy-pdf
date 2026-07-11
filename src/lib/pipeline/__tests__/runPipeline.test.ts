@@ -4,12 +4,16 @@ import type { PdfOperation, PipelineInput, PipelineStep, ProgressEvent } from ".
 
 // Fake ops operate on raw bytes — no pdf.js needed.
 const appendByte = (id: string, value: number): PdfOperation<unknown> => ({
-    id, label: id, icon: (() => null) as never, defaultOptions: {},
+    id, label: id, icon: (() => null) as never,
+    inputType: "pdf", outputType: "pdf",
+    defaultOptions: {},
     OptionsForm: (() => null) as never,
     run: async (input) => new Uint8Array([...input, value]),
 });
 const explode = (id: string): PdfOperation<unknown> => ({
-    id, label: id, icon: (() => null) as never, defaultOptions: {},
+    id, label: id, icon: (() => null) as never,
+    inputType: "pdf", outputType: "pdf",
+    defaultOptions: {},
     OptionsForm: (() => null) as never,
     run: async () => { throw new Error("boom"); },
 });
@@ -48,7 +52,9 @@ describe("runPipeline", () => {
     it("only the failing file fails when inputs differ", async () => {
         // Op fails only on empty input.
         const failEmpty: PdfOperation<unknown> = {
-            id: "fe", label: "fe", icon: (() => null) as never, defaultOptions: {},
+            id: "fe", label: "fe", icon: (() => null) as never,
+            inputType: "pdf", outputType: "pdf",
+            defaultOptions: {},
             OptionsForm: (() => null) as never,
             run: async (b) => { if (b.length === 0) throw new Error("empty"); return b; },
         };

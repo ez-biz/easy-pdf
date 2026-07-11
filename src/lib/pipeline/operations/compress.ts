@@ -5,7 +5,9 @@ import type { CompressOptions } from "./options";
 import { bytesToFile } from "./bytes";
 
 export const compressOp: PdfOperation<CompressOptions> = {
-    id: "compress", label: "Compress", icon: Minimize2, defaultOptions: {},
+    id: "compress", label: "Compress", icon: Minimize2,
+    inputType: "pdf", outputType: "pdf",
+    defaultOptions: {},
     OptionsForm: () => null,
     async run(input) {
         const res = await compressPDF(bytesToFile(input));

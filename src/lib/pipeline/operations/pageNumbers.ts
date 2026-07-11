@@ -7,6 +7,7 @@ import { PageNumbersForm } from "./forms/PageNumbersForm";
 
 export const pageNumbersOp: PdfOperation<PageNumbersOptions> = {
     id: "page-numbers", label: "Page numbers", icon: Hash,
+    inputType: "pdf", outputType: "pdf",
     defaultOptions: { format: "number", position: "bottom-center", startNumber: 1 },
     OptionsForm: PageNumbersForm,
     async run(input, options) {
