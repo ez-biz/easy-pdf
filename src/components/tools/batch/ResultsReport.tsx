@@ -1,19 +1,23 @@
 "use client";
 import { Check, X, Download, RotateCcw } from "lucide-react";
 import { downloadBlob } from "@/lib/utils";
-import { zipResults } from "@/lib/pipeline/zipResults";
+import { zipResults, withExtension } from "@/lib/pipeline/zipResults";
+import { MEDIA_META, type MediaType } from "@/lib/pipeline/mediaType";
 import type { FileStatus } from "@/lib/pipeline/types";
 
-export function ResultsReport({ results, onReset }: { results: FileStatus[]; onReset: () => void }) {
+export function ResultsReport({ results, outputType = "pdf", onReset }: {
+    results: FileStatus[]; outputType?: MediaType; onReset: () => void;
+}) {
+    const { ext, mime } = MEDIA_META[outputType];
     const successes = results.filter((r) => r.status === "success");
     const failures = results.filter((r) => r.status === "failed");
 
     async function downloadZip() {
-        downloadBlob(await zipResults(results), "batch-results.zip");
+        downloadBlob(await zipResults(results, ext), "batch-results.zip");
     }
     function downloadOne(r: FileStatus) {
         if (r.status === "success") {
-            downloadBlob(new Blob([r.bytes as BlobPart], { type: "application/pdf" }), r.name);
+            downloadBlob(new Blob([r.bytes as BlobPart], { type: mime }), withExtension(r.name, ext));
         }
     }
 
@@ -36,7 +40,7 @@ export function ResultsReport({ results, onReset }: { results: FileStatus[]; onR
                         {r.status === "success"
                             ? <Check className="w-4 h-4 text-green-600" />
                             : <X className="w-4 h-4 text-red-500" />}
-                        <span className="truncate flex-1">{r.name}</span>
+                        <span className="truncate flex-1">{r.status === "success" ? withExtension(r.name, ext) : r.name}</span>
                         {r.status === "success"
                             ? <button type="button" onClick={() => downloadOne(r)} className="text-primary-500 hover:underline">Download</button>
                             : <span className="text-red-500 text-xs">failed at step {r.failedStepIndex + 1} — {r.error}</span>}
