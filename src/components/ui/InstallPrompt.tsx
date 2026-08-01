@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion, type Variants } from "framer-motion";
 import { X } from "lucide-react";
 import Image from "next/image";
 
@@ -17,6 +17,7 @@ export function InstallPrompt() {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [showPrompt, setShowPrompt] = useState(false);
     const [installed, setInstalled] = useState(false);
+    const reduceMotion = useReducedMotion();
 
     const isStandalone = useCallback(() => {
         if (typeof window === "undefined") return false;
@@ -85,61 +86,97 @@ export function InstallPrompt() {
         localStorage.setItem(DISMISS_KEY, Date.now().toString());
     };
 
-    if (installed || !showPrompt) return null;
+    // Note: only `installed` short-circuits here. `showPrompt` is left to
+    // AnimatePresence — returning null on dismiss would unmount the card
+    // instantly and the exit animation would never play.
+    if (installed) return null;
+
+    // Card springs in as one piece, then its contents stagger in behind it.
+    const card: Variants = {
+        hidden: { y: -20, opacity: 0, scale: 0.96 },
+        show: {
+            y: 0,
+            opacity: 1,
+            scale: 1,
+            transition: reduceMotion
+                ? { duration: 0 }
+                : { type: "spring", duration: 0.5, bounce: 0, staggerChildren: 0.09, delayChildren: 0.1 },
+        },
+        // Exits stay softer than enters: a short lift, no scale.
+        exit: { y: -12, opacity: 0, transition: { duration: reduceMotion ? 0 : 0.18 } },
+    };
+
+    const item: Variants = {
+        hidden: { opacity: 0, y: 6 },
+        show: {
+            opacity: 1,
+            y: 0,
+            transition: reduceMotion ? { duration: 0 } : { type: "spring", duration: 0.4, bounce: 0 },
+        },
+    };
 
     return (
-        <AnimatePresence>
-            {showPrompt && (
-                <motion.div
-                    initial={{ y: -80, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -80, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className="fixed top-16 inset-x-0 z-40 flex justify-center px-4"
-                >
-                    <div className="w-full max-w-lg bg-surface-800 dark:bg-surface-800 border border-surface-700 rounded-2xl shadow-2xl backdrop-blur-xl">
-                        <div className="flex items-center gap-4 px-5 py-4">
-                            {/* App Icon */}
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary-500/25">
-                                <Image
-                                    src="/icons/icon-192x192.png"
-                                    alt="EasyPDF"
-                                    width={32}
-                                    height={32}
-                                    className="w-8 h-8 rounded-lg"
-                                />
-                            </div>
+        <div className="fixed top-16 inset-x-0 z-40 flex justify-center px-4 pointer-events-none">
+            <AnimatePresence>
+                {showPrompt && (
+                    <motion.div
+                        variants={card}
+                        initial="hidden"
+                        animate="show"
+                        exit="exit"
+                        className={[
+                            "w-full max-w-lg pointer-events-auto rounded-3xl p-3",
+                            "flex items-center gap-3",
+                            "bg-surface-800/95 backdrop-blur-xl",
+                            // Layered shadows instead of a hard border, plus a 1px
+                            // top highlight so the card reads as lit from above.
+                            "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_4px_12px_-2px_rgba(0,0,0,0.4),0_18px_44px_-12px_rgba(0,0,0,0.55)]",
+                        ].join(" ")}
+                    >
+                        {/* App icon — 12px radius inside 12px padding keeps it concentric with the 24px card */}
+                        <motion.div
+                            variants={item}
+                            className="relative w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-primary-400 via-primary-500 to-primary-600 shadow-[0_6px_16px_-4px_rgba(20,184,166,0.55),inset_0_1px_0_0_rgba(255,255,255,0.25)]"
+                        >
+                            <Image
+                                src="/icons/icon-192x192.png"
+                                alt=""
+                                width={32}
+                                height={32}
+                                className="w-8 h-8 rounded outline outline-1 -outline-offset-1 outline-white/10"
+                            />
+                        </motion.div>
 
-                            {/* Text */}
-                            <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-white text-sm leading-tight">
-                                    Install EasyPDF
-                                </p>
-                                <p className="text-surface-400 text-xs mt-0.5 leading-tight">
-                                    Work offline &amp; faster access
-                                </p>
-                            </div>
+                        {/* Text */}
+                        <motion.div variants={item} className="flex-1 min-w-0">
+                            <p className="font-semibold text-white text-sm leading-tight text-balance">
+                                Install EasyPDF
+                            </p>
+                            <p className="text-surface-400 text-xs mt-0.5 leading-tight text-pretty">
+                                Work offline &amp; faster access
+                            </p>
+                        </motion.div>
 
-                            {/* Install Button */}
+                        {/* Actions */}
+                        <motion.div variants={item} className="flex items-center gap-1 flex-shrink-0">
                             <button
                                 onClick={handleInstall}
-                                className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-xl transition-colors flex-shrink-0"
+                                className="inline-flex items-center justify-center min-h-10 px-4 rounded-xl bg-primary-500 hover:bg-primary-400 text-white text-sm font-medium shadow-[0_4px_12px_-2px_rgba(20,184,166,0.5)] hover:shadow-[0_6px_18px_-2px_rgba(45,212,191,0.6)] active:scale-[0.96] transition-[background-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
                             >
                                 Install
                             </button>
 
-                            {/* Close */}
                             <button
                                 onClick={handleDismiss}
-                                className="w-8 h-8 flex items-center justify-center rounded-lg text-surface-400 hover:text-white hover:bg-surface-700 transition-colors flex-shrink-0"
+                                className="inline-flex items-center justify-center w-10 h-10 rounded-xl text-surface-400 hover:text-white hover:bg-white/10 active:scale-[0.96] transition-[color,background-color,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)]"
                                 aria-label="Dismiss install prompt"
                             >
                                 <X className="w-4 h-4" />
                             </button>
-                        </div>
-                    </div>
-                </motion.div>
-            )}
-        </AnimatePresence>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 }
