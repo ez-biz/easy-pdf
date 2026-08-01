@@ -44,12 +44,17 @@ interface TextSegment {
     bold?: boolean;
     italic?: boolean;
     code?: boolean;
+    link?: string;
 }
 
 interface ContentBlock {
-    type: "h1" | "h2" | "h3" | "paragraph" | "bullet" | "blockquote" | "code" | "hr";
+    type: "h1" | "h2" | "h3" | "paragraph" | "bullet" | "ordered" | "blockquote" | "code" | "hr" | "table";
     segments?: TextSegment[];
     text?: string;
+    /** Rendered marker for ordered list items, e.g. "1." */
+    marker?: string;
+    /** Table cells; the first row is the header. */
+    rows?: string[][];
 }
 
 function parseInlineFormatting(text: string): TextSegment[] {
@@ -68,8 +73,13 @@ function parseInlineFormatting(text: string): TextSegment[] {
         const boldMatch = remaining.match(/^\*\*(.+?)\*\*/);
         const italicMatch = remaining.match(/^\*(.+?)\*(?!\*)/);
         const codeMatch = remaining.match(/^`(.+?)`/);
+        const linkMatch = remaining.match(/^\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/);
 
-        if (boldMatch) {
+        if (linkMatch) {
+            flushPlain();
+            segments.push({ text: linkMatch[1], link: linkMatch[2] });
+            remaining = remaining.slice(linkMatch[0].length);
+        } else if (boldMatch) {
             flushPlain();
             segments.push({ text: boldMatch[1], bold: true });
             remaining = remaining.slice(boldMatch[0].length);
@@ -140,6 +150,24 @@ function parseMarkdown(md: string): ContentBlock[] {
             continue;
         }
 
+        // Table: a pipe row followed by a |---|---| separator row
+        const isPipeRow = (l?: string) => !!l && /^\s*\|.*\|\s*$/.test(l);
+        const isSeparatorRow = (l?: string) => !!l && /^\s*\|[\s:|-]+\|\s*$/.test(l) && l.includes("-");
+        if (isPipeRow(line) && isSeparatorRow(lines[i + 1])) {
+            const splitRow = (l: string) =>
+                l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+
+            const rows: string[][] = [splitRow(line)];
+            i += 2; // consume header + separator
+            while (i < lines.length && isPipeRow(lines[i])) {
+                rows.push(splitRow(lines[i]));
+                i++;
+            }
+            i--; // the outer loop will advance past the last consumed line
+            blocks.push({ type: "table", rows });
+            continue;
+        }
+
         // Bullet list
         const bullet = line.match(/^[-*+]\s+(.+)/);
         if (bullet) {
@@ -147,10 +175,14 @@ function parseMarkdown(md: string): ContentBlock[] {
             continue;
         }
 
-        // Numbered list (treat as bullet for simplicity)
-        const numbered = line.match(/^\d+\.\s+(.+)/);
+        // Numbered list
+        const numbered = line.match(/^(\d+)\.\s+(.+)/);
         if (numbered) {
-            blocks.push({ type: "bullet", segments: parseInlineFormatting(numbered[1]) });
+            blocks.push({
+                type: "ordered",
+                marker: `${numbered[1]}.`,
+                segments: parseInlineFormatting(numbered[2]),
+            });
             continue;
         }
 
@@ -218,7 +250,11 @@ export default function MarkdownToPdfClient() {
                 let cursorX = x;
                 for (const seg of segments) {
                     const segFont = seg.bold ? boldFont : seg.italic ? italicFont : baseFont;
-                    const segColor = seg.code ? rgb(0.8, 0.2, 0.2) : rgb(0.1, 0.1, 0.1);
+                    const segColor = seg.code
+                        ? rgb(0.8, 0.2, 0.2)
+                        : seg.link
+                          ? rgb(0.1, 0.35, 0.8)
+                          : rgb(0.1, 0.1, 0.1);
                     const width = segFont.widthOfTextAtSize(seg.text, size);
                     currentPage.drawText(seg.text, {
                         x: cursorX,
@@ -300,6 +336,86 @@ export default function MarkdownToPdfClient() {
                             if (lines.indexOf(line) < lines.length - 1) {
                                 currentY -= lineHeight;
                             }
+                        }
+                        currentY -= paragraphSpacing;
+                        break;
+                    }
+                    case "ordered": {
+                        ensureSpace(lineHeight);
+                        currentY -= lineHeight;
+                        const marker = block.marker || "1.";
+                        currentPage.drawText(marker, {
+                            x: marginLeft,
+                            y: currentY,
+                            size: 11,
+                            font,
+                            color: rgb(0.1, 0.1, 0.1),
+                        });
+                        const indent = Math.max(18, font.widthOfTextAtSize(marker, 11) + 6);
+                        const oLines = wrapText(block.segments!, 11, font);
+                        for (const line of oLines) {
+                            ensureSpace(lineHeight);
+                            const segs = parseInlineFormatting(line);
+                            drawTextSegments(segs.length > 0 ? segs : [{ text: line }], marginLeft + indent, currentY, 11, font);
+                            if (oLines.indexOf(line) < oLines.length - 1) {
+                                currentY -= lineHeight;
+                            }
+                        }
+                        currentY -= paragraphSpacing;
+                        break;
+                    }
+                    case "table": {
+                        const rows = block.rows || [];
+                        if (rows.length === 0) break;
+
+                        const size = 10;
+                        const cellPadding = 5;
+                        const rowHeight = lineHeight + 4;
+                        const colCount = Math.max(...rows.map((r) => r.length));
+                        const colWidth = contentWidth / colCount;
+
+                        for (let r = 0; r < rows.length; r++) {
+                            ensureSpace(rowHeight);
+                            currentY -= rowHeight;
+                            const isHeader = r === 0;
+
+                            if (isHeader) {
+                                currentPage.drawRectangle({
+                                    x: marginLeft,
+                                    y: currentY - cellPadding + 1,
+                                    width: contentWidth,
+                                    height: rowHeight,
+                                    color: rgb(0.94, 0.94, 0.96),
+                                });
+                            }
+
+                            for (let c = 0; c < colCount; c++) {
+                                const cell = rows[r][c] ?? "";
+                                const cellFont = isHeader ? boldFont : font;
+                                // Clip the cell text to its column.
+                                let shown = cell;
+                                const maxWidth = colWidth - cellPadding * 2;
+                                while (shown && cellFont.widthOfTextAtSize(shown, size) > maxWidth) {
+                                    shown = shown.slice(0, -1);
+                                }
+                                if (shown !== cell && shown.length > 1) shown = shown.slice(0, -1) + "…";
+
+                                currentPage.drawText(shown, {
+                                    x: marginLeft + c * colWidth + cellPadding,
+                                    y: currentY,
+                                    size,
+                                    font: cellFont,
+                                    color: rgb(0.1, 0.1, 0.1),
+                                });
+                            }
+
+                            // Row separator
+                            currentPage.drawLine({
+                                start: { x: marginLeft, y: currentY - cellPadding },
+                                end: { x: marginLeft + contentWidth, y: currentY - cellPadding },
+                                thickness: 0.5,
+                                color: rgb(0.8, 0.8, 0.82),
+                            });
                         }
                         currentY -= paragraphSpacing;
                         break;
@@ -402,14 +518,12 @@ export default function MarkdownToPdfClient() {
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm text-surface-500">
-                            {markdown.split("\n").length} lines
-                        </p>
+                    <div className="flex justify-center gap-4">
                         <PrimaryAction
                             onClick={handleConvert}
                             loading={isProcessing}
                             icon={<FileText className="w-4 h-4" />}
+                            context={`${markdown.split("\n").length} lines`}
                         >
                             Convert to PDF
                         </PrimaryAction>
@@ -441,16 +555,19 @@ export default function MarkdownToPdfClient() {
                         </p>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        <DownloadButton
-                            onClick={() => downloadBlob(result.blob, "document.pdf")}
-                            filename="document.pdf"
-                            fileSize={result.size}
-                            isReady={true}
-                        />
-                        <button onClick={handleReset} className="text-sm text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 transition-colors">
-                            Start Over
-                        </button>
+                    <DownloadButton
+                        onClick={() => downloadBlob(result.blob, "document.pdf")}
+                        filename="document.pdf"
+                        fileSize={result.size}
+                        isReady={true}
+                    />
+
+                    <div className="text-center">
+                        <div className="flex justify-center gap-3">
+                            <Button variant="secondary" onClick={handleReset}>
+                                Start Over
+                            </Button>
+                        </div>
                     </div>
                 </motion.div>
             )}

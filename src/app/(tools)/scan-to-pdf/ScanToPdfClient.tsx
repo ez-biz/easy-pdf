@@ -60,6 +60,14 @@ export default function ScanToPdfClient() {
         const canvas = canvasRef.current;
         if (!video || !canvas) return;
 
+        // Capturing before the stream has dimensions yields a 0x0 page that only
+        // fails later, at PDF assembly.
+        if (!video.videoWidth || !video.videoHeight) {
+            setCameraError("Camera is still starting — try again in a moment.");
+            return;
+        }
+        setCameraError(null);
+
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext("2d");
@@ -102,12 +110,25 @@ export default function ScanToPdfClient() {
                     ? await pdfDoc.embedJpg(new Uint8Array(buffer))
                     : await pdfDoc.embedPng(new Uint8Array(buffer));
 
-                const page = pdfDoc.addPage([embedded.width, embedded.height]);
+                // Fit each capture onto a real A4 sheet rather than using raw pixel
+                // dimensions, which would produce a ~26x15in page for a 1080p camera.
+                const A4_SHORT = 595.28;
+                const A4_LONG = 841.89;
+                const landscape = embedded.width > embedded.height;
+                const pageWidth = landscape ? A4_LONG : A4_SHORT;
+                const pageHeight = landscape ? A4_SHORT : A4_LONG;
+
+                const page = pdfDoc.addPage([pageWidth, pageHeight]);
+
+                const scale = Math.min(pageWidth / embedded.width, pageHeight / embedded.height);
+                const drawWidth = embedded.width * scale;
+                const drawHeight = embedded.height * scale;
+
                 page.drawImage(embedded, {
-                    x: 0,
-                    y: 0,
-                    width: embedded.width,
-                    height: embedded.height,
+                    x: (pageWidth - drawWidth) / 2,
+                    y: (pageHeight - drawHeight) / 2,
+                    width: drawWidth,
+                    height: drawHeight,
                 });
             }
 
@@ -230,13 +251,23 @@ export default function ScanToPdfClient() {
                         </motion.div>
                     )}
 
+                    {error && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm"
+                        >
+                            {error}
+                        </motion.div>
+                    )}
+
                     {images.length > 0 && (
-                        <div className="flex items-center justify-between">
-                            <p className="text-sm text-surface-500">{images.length} page{images.length !== 1 ? "s" : ""} captured</p>
+                        <div className="flex justify-center gap-4">
                             <PrimaryAction
                                 onClick={handleConvert}
                                 loading={isProcessing}
                                 icon={<FileText className="w-4 h-4" />}
+                                context={`${images.length} page${images.length !== 1 ? "s" : ""} captured`}
                             >
                                 Create PDF
                             </PrimaryAction>
@@ -263,16 +294,19 @@ export default function ScanToPdfClient() {
                         </p>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        <DownloadButton
-                            onClick={() => downloadBlob(result.blob, "scanned-document.pdf")}
-                            filename="scanned-document.pdf"
-                            fileSize={result.size}
-                            isReady={true}
-                        />
-                        <button onClick={handleReset} className="text-sm text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 transition-colors">
-                            Start Over
-                        </button>
+                    <DownloadButton
+                        onClick={() => downloadBlob(result.blob, "scanned-document.pdf")}
+                        filename="scanned-document.pdf"
+                        fileSize={result.size}
+                        isReady={true}
+                    />
+
+                    <div className="text-center">
+                        <div className="flex justify-center gap-3">
+                            <Button variant="secondary" onClick={handleReset}>
+                                Start Over
+                            </Button>
+                        </div>
                     </div>
                 </motion.div>
             )}

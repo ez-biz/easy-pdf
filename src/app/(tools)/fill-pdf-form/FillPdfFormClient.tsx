@@ -16,6 +16,8 @@ interface FormField {
     name: string;
     type: string;
     value: string;
+    /** Allowed choices for dropdown and radio fields. */
+    options?: string[];
 }
 
 export default function FillPdfFormClient() {
@@ -51,6 +53,7 @@ export default function FillPdfFormClient() {
                     const name = field.getName();
                     let type = "text";
                     let value = "";
+                    let options: string[] | undefined;
 
                     if (field instanceof PDFTextField) {
                         type = "text";
@@ -59,6 +62,7 @@ export default function FillPdfFormClient() {
                         type = "dropdown";
                         const selected = field.getSelected();
                         value = Array.isArray(selected) ? selected[0] ?? "" : selected ?? "";
+                        options = field.getOptions();
                     } else if (field instanceof PDFCheckBox) {
                         type = "checkbox";
                         value = field.isChecked() ? "true" : "false";
@@ -66,9 +70,10 @@ export default function FillPdfFormClient() {
                         type = "radio";
                         const selected = field.getSelected();
                         value = Array.isArray(selected) ? selected[0] ?? "" : selected ?? "";
+                        options = field.getOptions();
                     }
 
-                    return { name, type, value };
+                    return { name, type, value, options };
                 });
 
                 setFormFields(loadedFields);
@@ -102,6 +107,8 @@ export default function FillPdfFormClient() {
             const pdfDoc = await PDFDocument.load(arrayBuffer);
             const form = pdfDoc.getForm();
 
+            const rejected: string[] = [];
+
             for (const field of formFields) {
                 try {
                     const pdfField = form.getFieldMaybe(field.name);
@@ -109,7 +116,14 @@ export default function FillPdfFormClient() {
 
                     if (pdfField instanceof PDFTextField) {
                         pdfField.setText(field.value);
-                    } else if (pdfField instanceof PDFDropdown) {
+                    } else if (pdfField instanceof PDFDropdown || pdfField instanceof PDFRadioGroup) {
+                        // Never write a choice the field doesn't define — pdf-lib would
+                        // happily add it, producing a PDF that violates its own form.
+                        if (field.value === "") continue;
+                        if (!pdfField.getOptions().includes(field.value)) {
+                            rejected.push(field.name);
+                            continue;
+                        }
                         pdfField.select(field.value);
                     } else if (pdfField instanceof PDFCheckBox) {
                         if (field.value === "true") {
@@ -117,12 +131,18 @@ export default function FillPdfFormClient() {
                         } else {
                             pdfField.uncheck();
                         }
-                    } else if (pdfField instanceof PDFRadioGroup) {
-                        pdfField.select(field.value);
                     }
                 } catch {
-                    // Skip fields that can't be set
+                    rejected.push(field.name);
                 }
+            }
+
+            if (rejected.length) {
+                setError(
+                    `Could not set ${rejected.length} field${rejected.length !== 1 ? "s" : ""}: ${rejected.join(", ")}. The value is not one of the choices this form allows.`,
+                );
+                setIsProcessing(false);
+                return;
             }
 
             const pdfBytes = await pdfDoc.save();
@@ -194,7 +214,7 @@ export default function FillPdfFormClient() {
                                     <FormInput className="w-8 h-8 text-amber-500 mx-auto mb-2" />
                                     <p className="text-amber-700 dark:text-amber-300 font-medium">No fillable fields found</p>
                                     <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">
-                                        This PDF doesn't contain interactive form fields. Try a PDF with forms.
+                                        This PDF doesn&apos;t contain interactive form fields. Try a PDF with forms.
                                     </p>
                                 </div>
                             )}
@@ -222,6 +242,35 @@ export default function FillPdfFormClient() {
                                                         />
                                                         <span className="text-sm text-surface-500">Checked</span>
                                                     </label>
+                                                ) : field.type === "dropdown" && field.options?.length ? (
+                                                    <select
+                                                        value={field.value}
+                                                        onChange={(e) => handleFieldChange(index, e.target.value)}
+                                                        className="w-full px-4 py-2 rounded-lg border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 text-surface-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                                                    >
+                                                        <option value="">— Select —</option>
+                                                        {field.options.map((opt) => (
+                                                            <option key={opt} value={opt}>
+                                                                {opt}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                ) : field.type === "radio" && field.options?.length ? (
+                                                    <div className="flex flex-wrap gap-4">
+                                                        {field.options.map((opt) => (
+                                                            <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                                                                <input
+                                                                    type="radio"
+                                                                    name={field.name}
+                                                                    value={opt}
+                                                                    checked={field.value === opt}
+                                                                    onChange={() => handleFieldChange(index, opt)}
+                                                                    className="w-4 h-4 accent-primary-500"
+                                                                />
+                                                                <span className="text-sm text-surface-600 dark:text-surface-300">{opt}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
                                                 ) : (
                                                     <input
                                                         type="text"
@@ -236,13 +285,23 @@ export default function FillPdfFormClient() {
                                 </div>
                             )}
 
+                            {error && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm"
+                                >
+                                    {error}
+                                </motion.div>
+                            )}
+
                             {formFields.length > 0 && (
-                                <div className="flex items-center justify-between">
-                                    <p className="text-sm text-surface-500">{formFields.length} field{formFields.length !== 1 ? "s" : ""}</p>
+                                <div className="flex justify-center gap-4">
                                     <PrimaryAction
                                         onClick={handleFill}
                                         loading={isProcessing}
                                         icon={<Check className="w-4 h-4" />}
+                                        context={`${formFields.length} field${formFields.length !== 1 ? "s" : ""}`}
                                     >
                                         Fill & Save
                                     </PrimaryAction>
@@ -271,16 +330,19 @@ export default function FillPdfFormClient() {
                         </p>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        <DownloadButton
-                            onClick={handleDownload}
-                            filename={file.name.replace(/\.pdf$/i, "_filled.pdf")}
-                            fileSize={result.size}
-                            isReady={true}
-                        />
-                        <button onClick={handleReset} className="text-sm text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 transition-colors">
-                            Start Over
-                        </button>
+                    <DownloadButton
+                        onClick={handleDownload}
+                        filename={file.name.replace(/\.pdf$/i, "_filled.pdf")}
+                        fileSize={result.size}
+                        isReady={true}
+                    />
+
+                    <div className="text-center">
+                        <div className="flex justify-center gap-3">
+                            <Button variant="secondary" onClick={handleReset}>
+                                Start Over
+                            </Button>
+                        </div>
                     </div>
                 </motion.div>
             )}
