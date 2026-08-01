@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Code, FileText } from "lucide-react";
-import { PDFDocument, rgb } from "@cantoo/pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "@cantoo/pdf-lib";
 import { ToolLayout } from "@/components/layout/ToolLayout";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { PrimaryAction } from "@/components/tools/PrimaryAction";
@@ -58,50 +58,86 @@ export default function HtmlToPdfClient() {
         setIsProcessing(true);
 
         try {
-            // Use browser print API to generate PDF from HTML
-            const iframe = document.createElement("iframe");
-            iframe.style.position = "fixed";
-            iframe.style.top = "-10000px";
-            iframe.style.left = "-10000px";
-            iframe.style.width = "210mm";
-            iframe.style.height = "297mm";
-            document.body.appendChild(iframe);
+            // Strip HTML tags for plain text
+            const strippedHtml = html
+                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+                .replace(/<br\s*\/?>/gi, "\n")
+                .replace(/<\/p>/gi, "\n\n")
+                .replace(/<\/h[1-6]>/gi, "\n\n")
+                .replace(/<\/li>/gi, "\n")
+                .replace(/<\/div>/gi, "\n")
+                .replace(/<[^>]+>/g, "")
+                .replace(/&nbsp;/g, " ")
+                .replace(/&amp;/g, "&")
+                .replace(/&lt;/g, "<")
+                .replace(/&gt;/g, ">")
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .replace(/\n{3,}/g, "\n\n")
+                .trim();
 
-            const doc = iframe.contentDocument || iframe.contentWindow?.document;
-            if (!doc) throw new Error("Could not create document");
+            if (!strippedHtml) {
+                throw new Error("No text content found in HTML");
+            }
 
-            doc.open();
-            doc.write(html);
-            doc.close();
-
-            // Wait for images and styles to load
-            await new Promise((resolve) => setTimeout(resolve, 500));
-
-            // Use window.print approach via the iframe
-            // For client-side, we use the print-to-PDF dialog
-            iframe.contentWindow?.focus();
-            iframe.contentWindow?.print();
-
-            // Remove after print dialog
-            setTimeout(() => {
-                document.body.removeChild(iframe);
-            }, 1000);
-
-            // Since browser print is dialog-based, also offer a simple text-based fallback
-            // using pdf-lib to create a basic PDF with the HTML as plain text
             const pdfDoc = await PDFDocument.create();
-            const page = pdfDoc.addPage([595.28, 841.89]);
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-            // Strip HTML tags for plain text fallback
-            const textContent = html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
-            const lines = textContent.match(/.{1,90}/g) || [textContent];
+            const pageWidth = 595.28;
+            const pageHeight = 841.89;
+            const marginX = 50;
+            const marginTop = 50;
+            const marginBottom = 50;
+            const contentWidth = pageWidth - marginX * 2;
+            const lineHeight = 14;
+            const fontSize = 11;
 
-            // Draw text as fallback
-            let y = 800;
-            for (const line of lines.slice(0, 60)) {
-                if (y < 40) break;
-                page.drawText(line, { x: 50, y, size: 10, color: rgb(0.1, 0.1, 0.1) });
-                y -= 14;
+            let currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+            let y = pageHeight - marginTop;
+
+            const addNewPage = () => {
+                currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+                y = pageHeight - marginTop;
+            };
+
+            const drawLine = (text: string, isBold = false, size = fontSize) => {
+                if (y < marginBottom) addNewPage();
+                currentPage.drawText(text, {
+                    x: marginX,
+                    y,
+                    size,
+                    font: isBold ? boldFont : font,
+                    color: rgb(0.1, 0.1, 0.1),
+                });
+                y -= size + 4;
+            };
+
+            const paragraphs = strippedHtml.split(/\n\n+/);
+
+            for (const para of paragraphs) {
+                const trimmed = para.trim();
+                if (!trimmed) continue;
+
+                if (y < marginBottom + lineHeight * 3) addNewPage();
+
+                // Wrap text to fit page width
+                const words = trimmed.split(/\s+/);
+                let currentLine = "";
+                for (const word of words) {
+                    const testLine = currentLine ? currentLine + " " + word : word;
+                    if (font.widthOfTextAtSize(testLine, fontSize) > contentWidth) {
+                        drawLine(currentLine);
+                        currentLine = word;
+                    } else {
+                        currentLine = testLine;
+                    }
+                }
+                if (currentLine) {
+                    drawLine(currentLine);
+                }
+                y -= 6; // paragraph spacing
             }
 
             const pdfBytes = await pdfDoc.save();
@@ -174,9 +210,6 @@ export default function HtmlToPdfClient() {
                         <h2 className="text-xl font-bold text-surface-900 dark:text-white mb-2">PDF Ready</h2>
                         <p className="text-surface-500 dark:text-surface-400">
                             HTML has been converted to a PDF document.
-                        </p>
-                        <p className="text-xs text-surface-400 mt-2">
-                            Tip: For best results, use the browser&apos;s native Print → Save as PDF for complex HTML layouts.
                         </p>
                     </div>
 
