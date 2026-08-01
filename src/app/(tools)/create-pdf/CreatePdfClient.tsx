@@ -128,14 +128,22 @@ export default function CreatePdfClient() {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm text-surface-500">
-                            Creates a blank PDF with {pageCount} page{pageCount !== 1 ? "s" : ""}
-                        </p>
+                    {error && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm"
+                        >
+                            {error}
+                        </motion.div>
+                    )}
+
+                    <div className="flex justify-center gap-4">
                         <PrimaryAction
                             onClick={handleCreate}
                             loading={isProcessing}
                             icon={<FilePlus className="w-4 h-4" />}
+                            context={`Creates a blank PDF with ${pageCount} page${pageCount !== 1 ? "s" : ""}`}
                         >
                             Create PDF
                         </PrimaryAction>
@@ -164,19 +172,19 @@ export default function CreatePdfClient() {
                         </p>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        <DownloadButton
-                            onClick={() => downloadBlob(result.blob, "document.pdf")}
-                            filename="document.pdf"
-                            fileSize={result.size}
-                            isReady={true}
-                        />
-                        <button
-                            onClick={handleReset}
-                            className="text-sm text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 transition-colors"
-                        >
-                            Start Over
-                        </button>
+                    <DownloadButton
+                        onClick={() => downloadBlob(result.blob, "document.pdf")}
+                        filename="document.pdf"
+                        fileSize={result.size}
+                        isReady={true}
+                    />
+
+                    <div className="text-center">
+                        <div className="flex justify-center gap-3">
+                            <Button variant="secondary" onClick={handleReset}>
+                                Start Over
+                            </Button>
+                        </div>
                     </div>
                 </motion.div>
             )}

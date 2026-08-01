@@ -8,6 +8,7 @@ import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { PrimaryAction } from "@/components/tools/PrimaryAction";
+import { Button } from "@/components/ui/Button";
 import { FileWithPreview } from "@/types/tools";
 import { downloadBlob, formatFileSize, createPdfBlob, readFileAsArrayBuffer } from "@/lib/utils";
 
@@ -126,12 +127,22 @@ export default function FlattenPdfClient() {
                                 </p>
                             </div>
 
-                            <div className="flex items-center justify-between">
-                                <p className="text-sm text-surface-500">Ready to flatten</p>
+                            {error && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm"
+                                >
+                                    {error}
+                                </motion.div>
+                            )}
+
+                            <div className="flex justify-center gap-4">
                                 <PrimaryAction
                                     onClick={handleFlatten}
                                     loading={isProcessing}
                                     icon={<Layers className="w-4 h-4" />}
+                                    context="Ready to flatten"
                                 >
                                     Flatten PDF
                                 </PrimaryAction>
@@ -176,19 +187,19 @@ export default function FlattenPdfClient() {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        <DownloadButton
-                            onClick={handleDownload}
-                            filename={file.name.replace(/\.pdf$/i, "_flattened.pdf")}
-                            fileSize={result.size}
-                            isReady={true}
-                        />
-                        <button
-                            onClick={handleReset}
-                            className="text-sm text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 transition-colors"
-                        >
-                            Start Over
-                        </button>
+                    <DownloadButton
+                        onClick={handleDownload}
+                        filename={file.name.replace(/\.pdf$/i, "_flattened.pdf")}
+                        fileSize={result.size}
+                        isReady={true}
+                    />
+
+                    <div className="text-center">
+                        <div className="flex justify-center gap-3">
+                            <Button variant="secondary" onClick={handleReset}>
+                                Start Over
+                            </Button>
+                        </div>
                     </div>
                 </motion.div>
             )}

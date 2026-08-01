@@ -7,6 +7,7 @@ import { PDFDocument, StandardFonts, rgb } from "@cantoo/pdf-lib";
 import { ToolLayout } from "@/components/layout/ToolLayout";
 import { DownloadButton } from "@/components/tools/DownloadButton";
 import { PrimaryAction } from "@/components/tools/PrimaryAction";
+import { Button } from "@/components/ui/Button";
 import { downloadBlob, createPdfBlob } from "@/lib/utils";
 
 const SAMPLE_HTML = `<!DOCTYPE html>
@@ -174,14 +175,12 @@ export default function HtmlToPdfClient() {
                         />
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm text-surface-500">
-                            {html.split("\n").length} lines
-                        </p>
+                    <div className="flex justify-center gap-4">
                         <PrimaryAction
                             onClick={handleConvert}
                             loading={isProcessing}
                             icon={<FileText className="w-4 h-4" />}
+                            context={`${html.split("\n").length} lines`}
                         >
                             Convert to PDF
                         </PrimaryAction>
@@ -213,16 +212,19 @@ export default function HtmlToPdfClient() {
                         </p>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        <DownloadButton
-                            onClick={() => downloadBlob(result.blob, "document.pdf")}
-                            filename="document.pdf"
-                            fileSize={result.size}
-                            isReady={true}
-                        />
-                        <button onClick={handleReset} className="text-sm text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 transition-colors">
-                            Start Over
-                        </button>
+                    <DownloadButton
+                        onClick={() => downloadBlob(result.blob, "document.pdf")}
+                        filename="document.pdf"
+                        fileSize={result.size}
+                        isReady={true}
+                    />
+
+                    <div className="text-center">
+                        <div className="flex justify-center gap-3">
+                            <Button variant="secondary" onClick={handleReset}>
+                                Start Over
+                            </Button>
+                        </div>
                     </div>
                 </motion.div>
             )}
