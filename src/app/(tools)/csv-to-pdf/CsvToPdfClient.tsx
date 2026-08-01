@@ -340,7 +340,7 @@ export default function CsvToPdfClient() {
                             isReady={true}
                         />
                         <button onClick={handleReset} className="text-sm text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 transition-colors">
-                            Convert Another
+                            Start Over
                         </button>
                     </div>
                 </motion.div>

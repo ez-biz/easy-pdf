@@ -165,9 +165,9 @@ export default function HeadersFootersClient() {
                                 <div className="w-12 h-14 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
                                     <FileText className="w-6 h-6 text-red-500" />
                                 </div>
-                                <div>
+                                <div className="flex-1">
                                     <p className="font-medium text-surface-900 dark:text-white truncate">{file.name}</p>
-                                    <p className="text-sm text-surface-500">{formatFileSize(file.size)}</p>
+                                    <p className="text-sm text-surface-500">Current size: {formatFileSize(file.size)}</p>
                                 </div>
                             </div>
 
@@ -288,7 +288,7 @@ export default function HeadersFootersClient() {
                             isReady={true}
                         />
                         <button onClick={handleReset} className="text-sm text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 transition-colors">
-                            Edit Another
+                            Start Over
                         </button>
                     </div>
                 </motion.div>

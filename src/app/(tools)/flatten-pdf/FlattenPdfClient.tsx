@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Layers, FileText, Check } from "lucide-react";
+import { Layers, FileText, ArrowRight } from "lucide-react";
 import { PDFDocument } from "@cantoo/pdf-lib";
 import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
@@ -109,12 +109,12 @@ export default function FlattenPdfClient() {
                                 <div className="w-12 h-14 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
                                     <FileText className="w-6 h-6 text-red-500" />
                                 </div>
-                                <div>
+                                <div className="flex-1">
                                     <p className="font-medium text-surface-900 dark:text-white truncate">
                                         {file.name}
                                     </p>
                                     <p className="text-sm text-surface-500">
-                                        {formatFileSize(file.size)}
+                                        Current size: {formatFileSize(file.size)}
                                     </p>
                                 </div>
                             </div>
@@ -151,7 +151,7 @@ export default function FlattenPdfClient() {
                             animate={{ scale: 1 }}
                             className="w-20 h-20 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4"
                         >
-                            <Check className="w-10 h-10 text-purple-500" />
+                            <Layers className="w-10 h-10 text-purple-500" />
                         </motion.div>
                         <h2 className="text-xl font-bold text-surface-900 dark:text-white mb-2">
                             PDF Flattened
@@ -166,7 +166,7 @@ export default function FlattenPdfClient() {
                                     {formatFileSize(file.size)}
                                 </p>
                             </div>
-                            <span className="text-surface-300">→</span>
+                            <ArrowRight className="w-4 h-4 text-surface-400" />
                             <div className="text-center">
                                 <p className="text-surface-500">Flattened</p>
                                 <p className="font-semibold text-green-600 dark:text-green-400">
@@ -187,7 +187,7 @@ export default function FlattenPdfClient() {
                             onClick={handleReset}
                             className="text-sm text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 transition-colors"
                         >
-                            Flatten Another
+                            Start Over
                         </button>
                     </div>
                 </motion.div>

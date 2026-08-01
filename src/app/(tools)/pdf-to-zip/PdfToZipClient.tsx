@@ -101,8 +101,8 @@ export default function PdfToZipClient() {
                                             key={f.id}
                                             className="flex items-center gap-3 p-3 bg-surface-50 dark:bg-surface-800/50 rounded-lg border border-surface-200 dark:border-surface-700"
                                         >
-                                            <div className="w-10 h-12 bg-red-100 dark:bg-red-900/30 rounded flex items-center justify-center flex-shrink-0">
-                                                <FileText className="w-5 h-5 text-red-500" />
+                                            <div className="w-12 h-14 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                                                <FileText className="w-6 h-6 text-red-500" />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-medium text-surface-900 dark:text-white truncate">

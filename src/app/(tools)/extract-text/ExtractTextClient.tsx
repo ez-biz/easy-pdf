@@ -127,7 +127,7 @@ export default function ExtractTextClient() {
                                         {file.name}
                                     </p>
                                     <p className="text-sm text-surface-500">
-                                        {formatFileSize(file.size)}
+                                        Current size: {formatFileSize(file.size)}
                                     </p>
                                 </div>
                             </div>
@@ -187,13 +187,14 @@ export default function ExtractTextClient() {
                         <DownloadButton
                             onClick={handleDownloadText}
                             filename={file?.name?.replace(/\.pdf$/i, ".txt") || "extracted.txt"}
+                            fileSize={new Blob([text]).size}
                             isReady={true}
                         />
                         <button
                             onClick={handleReset}
                             className="text-sm text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200 transition-colors"
                         >
-                            Extract Another
+                            Start Over
                         </button>
                     </div>
                 </motion.div>
