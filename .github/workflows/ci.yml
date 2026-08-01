@@ -20,10 +20,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Node 22, not the 20 in deploy.yml: pdfjs-dist calls
+      # Promise.withResolvers, which only exists from Node 22, so the
+      # convert.test.ts suite cannot run on 20. Node 20 is also EOL.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
