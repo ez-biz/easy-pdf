@@ -11,6 +11,7 @@ import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { Button } from "@/components/ui/Button";
 import { FileWithPreview } from "@/types/tools";
 import { downloadBlob, formatFileSize, createPdfBlob, readFileAsArrayBuffer } from "@/lib/utils";
+import { applyFormFieldValues } from "@/lib/pdf/formFields";
 
 interface FormField {
     name: string;
@@ -107,35 +108,7 @@ export default function FillPdfFormClient() {
             const pdfDoc = await PDFDocument.load(arrayBuffer);
             const form = pdfDoc.getForm();
 
-            const rejected: string[] = [];
-
-            for (const field of formFields) {
-                try {
-                    const pdfField = form.getFieldMaybe(field.name);
-                    if (!pdfField) continue;
-
-                    if (pdfField instanceof PDFTextField) {
-                        pdfField.setText(field.value);
-                    } else if (pdfField instanceof PDFDropdown || pdfField instanceof PDFRadioGroup) {
-                        // Never write a choice the field doesn't define — pdf-lib would
-                        // happily add it, producing a PDF that violates its own form.
-                        if (field.value === "") continue;
-                        if (!pdfField.getOptions().includes(field.value)) {
-                            rejected.push(field.name);
-                            continue;
-                        }
-                        pdfField.select(field.value);
-                    } else if (pdfField instanceof PDFCheckBox) {
-                        if (field.value === "true") {
-                            pdfField.check();
-                        } else {
-                            pdfField.uncheck();
-                        }
-                    }
-                } catch {
-                    rejected.push(field.name);
-                }
-            }
+            const { rejected } = applyFormFieldValues(form, formFields);
 
             if (rejected.length) {
                 setError(

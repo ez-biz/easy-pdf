@@ -9,6 +9,7 @@ import { DownloadButton } from "@/components/tools/DownloadButton";
 import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { Button } from "@/components/ui/Button";
 import { downloadBlob, createPdfBlob } from "@/lib/utils";
+import { fitImageToPage } from "@/lib/pdf/fitPage";
 
 interface CapturedImage {
     id: string;
@@ -110,25 +111,13 @@ export default function ScanToPdfClient() {
                     ? await pdfDoc.embedJpg(new Uint8Array(buffer))
                     : await pdfDoc.embedPng(new Uint8Array(buffer));
 
-                // Fit each capture onto a real A4 sheet rather than using raw pixel
-                // dimensions, which would produce a ~26x15in page for a 1080p camera.
-                const A4_SHORT = 595.28;
-                const A4_LONG = 841.89;
-                const landscape = embedded.width > embedded.height;
-                const pageWidth = landscape ? A4_LONG : A4_SHORT;
-                const pageHeight = landscape ? A4_SHORT : A4_LONG;
-
-                const page = pdfDoc.addPage([pageWidth, pageHeight]);
-
-                const scale = Math.min(pageWidth / embedded.width, pageHeight / embedded.height);
-                const drawWidth = embedded.width * scale;
-                const drawHeight = embedded.height * scale;
-
+                const fit = fitImageToPage(embedded.width, embedded.height);
+                const page = pdfDoc.addPage([fit.pageWidth, fit.pageHeight]);
                 page.drawImage(embedded, {
-                    x: (pageWidth - drawWidth) / 2,
-                    y: (pageHeight - drawHeight) / 2,
-                    width: drawWidth,
-                    height: drawHeight,
+                    x: fit.x,
+                    y: fit.y,
+                    width: fit.drawWidth,
+                    height: fit.drawHeight,
                 });
             }
 

@@ -4,7 +4,6 @@ import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import * as pdfjs from "pdfjs-dist";
 import { BookOpen, FileText } from "lucide-react";
-import JSZip from "jszip";
 import { ToolLayout } from "@/components/layout/ToolLayout";
 import { FileUploader } from "@/components/tools/FileUploader";
 import { DownloadButton } from "@/components/tools/DownloadButton";
@@ -12,59 +11,16 @@ import { PrimaryAction } from "@/components/tools/PrimaryAction";
 import { Button } from "@/components/ui/Button";
 import { FileWithPreview } from "@/types/tools";
 import { downloadBlob, formatFileSize, readFileAsArrayBuffer } from "@/lib/utils";
+import { itemsToParagraphs, paragraphsToChapters, buildEpubZip } from "@/lib/epub/build";
 
 if (typeof window !== "undefined") {
     pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 }
 
-function escapeXml(s: string): string {
-    return s
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&apos;");
-}
-
-/** Turn one PDF page's text items into paragraphs, using pdf.js end-of-line hints. */
-function itemsToParagraphs(items: { str: string; hasEOL?: boolean }[]): string[] {
-    const lines: string[] = [];
-    let line = "";
-
-    for (const item of items) {
-        line += item.str;
-        if (item.hasEOL) {
-            lines.push(line.trim());
-            line = "";
-        }
-    }
-    if (line.trim()) lines.push(line.trim());
-
-    // Blank lines separate paragraphs; consecutive lines are joined.
-    const paragraphs: string[] = [];
-    let current: string[] = [];
-    for (const l of lines) {
-        if (l === "") {
-            if (current.length) paragraphs.push(current.join(" "));
-            current = [];
-        } else {
-            current.push(l);
-        }
-    }
-    if (current.length) paragraphs.push(current.join(" "));
-
-    return paragraphs.filter((p) => p.trim() !== "");
-}
-
-/**
- * Convert a PDF into a spec-valid EPUB 3: the text of each PDF page becomes an
- * XHTML Content Document in the spine (a PDF cannot be a spine item itself).
- */
 async function createEpubFromPdf(pdfBuffer: ArrayBuffer, title: string): Promise<Blob> {
     const pdf = await pdfjs.getDocument({ data: pdfBuffer }).promise;
 
-    const chapters: { id: string; href: string; title: string; body: string }[] = [];
-
+    const pages: string[][] = [];
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
@@ -74,93 +30,13 @@ async function createEpubFromPdf(pdfBuffer: ArrayBuffer, title: string): Promise
                 const t = it as { str: string; hasEOL?: boolean };
                 return { str: t.str, hasEOL: t.hasEOL };
             });
-        const paragraphs = itemsToParagraphs(items);
-        const chapterTitle = `Page ${i}`;
-        const body = paragraphs.length
-            ? paragraphs.map((p) => `    <p>${escapeXml(p)}</p>`).join("\n")
-            : `    <p/>`;
-
-        chapters.push({
-            id: `page${i}`,
-            href: `page${i}.xhtml`,
-            title: chapterTitle,
-            body,
-        });
+        pages.push(itemsToParagraphs(items));
     }
 
-    const zip = new JSZip();
-
-    // mimetype (must be first, uncompressed)
-    zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
-
-    zip.folder("META-INF")?.file("container.xml", `<?xml version="1.0" encoding="UTF-8"?>
-<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-  <rootfiles>
-    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-  </rootfiles>
-</container>`);
-
-    const oebps = zip.folder("OEBPS");
-
-    for (const ch of chapters) {
-        oebps?.file(ch.href, `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-  <title>${escapeXml(ch.title)}</title>
-  <meta charset="utf-8"/>
-</head>
-<body>
-  <section epub:type="chapter" xmlns:epub="http://www.idpf.org/2007/ops">
-${ch.body}
-  </section>
-</body>
-</html>`);
-    }
-
-    const manifestItems = chapters
-        .map((ch) => `    <item id="${ch.id}" href="${ch.href}" media-type="application/xhtml+xml"/>`)
-        .join("\n");
-    const spineItems = chapters
-        .map((ch) => `    <itemref idref="${ch.id}" linear="yes"/>`)
-        .join("\n");
-
-    oebps?.file("content.opf", `<?xml version="1.0" encoding="UTF-8"?>
-<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="book-id" version="3.0">
-  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-    <dc:title>${escapeXml(title)}</dc:title>
-    <dc:creator>EasyPDF</dc:creator>
-    <dc:language>en</dc:language>
-    <dc:identifier id="book-id">urn:uuid:${crypto.randomUUID()}</dc:identifier>
-    <dc:date>${new Date().toISOString().split("T")[0]}</dc:date>
-    <meta property="dcterms:modified">${new Date().toISOString().replace(/\.\d{3}Z$/, "Z")}</meta>
-  </metadata>
-  <manifest>
-${manifestItems}
-    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
-  </manifest>
-  <spine>
-${spineItems}
-  </spine>
-</package>`);
-
-    const navItems = chapters
-        .map((ch) => `      <li><a href="${ch.href}">${escapeXml(ch.title)}</a></li>`)
-        .join("\n");
-
-    oebps?.file("nav.xhtml", `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
-<head><title>${escapeXml(title)}</title><meta charset="utf-8"/></head>
-<body>
-  <nav epub:type="toc">
-    <h1>Contents</h1>
-    <ol>
-${navItems}
-    </ol>
-  </nav>
-</body>
-</html>`);
+    const zip = buildEpubZip(paragraphsToChapters(pages), title, {
+        identifier: `urn:uuid:${crypto.randomUUID()}`,
+        modified: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+    });
 
     return await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
