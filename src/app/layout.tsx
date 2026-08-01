@@ -3,6 +3,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ToastProvider } from "@/contexts/ToastContext";
+import { InstallPrompt } from "@/components/ui/InstallPrompt";
 
 export const viewport: Viewport = {
     themeColor: [
@@ -105,6 +106,7 @@ export default function RootLayout({
                             Skip to content
                         </a>
                         <Header />
+                        <InstallPrompt />
                         <main id="main-content" className="flex-1 pt-16">{children}</main>
                         <Footer />
                     </ToastProvider>
